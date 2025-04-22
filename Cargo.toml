@@ -1,0 +1,19 @@
+[workspace]
+members = [
+    "ec",
+    "voter",
+]
+resolver = "2"
+
+[workspace.package]
+authors = ["Francisco Calderón <calderon@protonmail.com>"]
+homepage = "https://github.com/grunch/criptocracia"
+repository = "https://github.com/grunch/criptocracia.git"
+license = "MIT"
+rust-version = "1.86.0"
+
+[workspace.dependencies]
+serde = "1.0"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+anyhow = "1"
+nostr-sdk = { version = "0.41", features = ["nip59"] }
