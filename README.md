@@ -1,5 +1,7 @@
 # Criptocracia
 
+*Disclaimer: The author is NOT a cryptographer and this work has not been reviewed. This means that there is very likely a fatal flaw somewhere. Criptocracia is still experimental and not production-ready.*
+
 ## Context
 The critical need for secure, transparent, and anonymous electronic‑voting systems is becoming ever more pressing, especially in settings where trust in central authorities is limited—addressing concerns that authoritarian regimes may use electoral systems to stay in power. The historical challenges of electoral fraud underscore the importance of exploring robust solutions. Modern cryptography provides powerful tools for building systems that can withstand manipulation and allow for public verification.
 
@@ -52,5 +54,15 @@ Registered users with a Nostr key pair (public and private). The public key (vot
 - The EC adds h_n to the used_tokens database to mark it as used.
 - If the signature is invalid or h_n has already been used, the EC discards the vote.
 
-## Roadmap
-**TODO**
+## Todo list
+- [x] EC publish list of candidates as a Nostr event
+- [ ] EC: Add manually voters pubkeys
+- [ ] EC create a list of registration tokens to be send to voters (v0.2)
+- [ ] Voter creates key pair and sign the token (v0.2)
+- [ ] Voter send the registration token to EC in a gift wrap (v0.2)
+- [ ] EC receives the registration token and save the voter's pubkey (v0.2)
+- [ ] Voter generates an unique voting token and send it to EC
+- [ ] EC blind sign the voting token and send it back to the voter
+- [ ] Voter cast vote
+- [ ] EC receive vote
+- [ ] EC Count votes and publish to Nostr
