@@ -49,7 +49,7 @@ async fn main() -> Result<()> {
     client.send_event(&event).await?;
 
     // println!("🎁 Evento con la lista de candidatos enviado! {:#?}", event);
-    let file_path = "voters.json";
+    let file_path = "data/voters_pubkeys.json";
     // Read voters json file
     let json_content = fs::read_to_string(file_path)
         .map_err(|e| anyhow::anyhow!("Error reading file {}: {}", file_path, e))?;
