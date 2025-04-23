@@ -12,3 +12,9 @@ impl Candidate {
         Self { id, name }
     }
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Voter {
+    pub name: String,
+    pub pubkey: String,
+}
