@@ -1,9 +1,10 @@
-mod candidates;
-mod counting;
+mod types;
+mod ec;
 
 use anyhow::Result;
-use candidates::Candidate;
+use types::{Candidate, Voter};
 use nostr_sdk::prelude::*;
+use std::fs;
 
 // Demo keys for the electoral commission:
 // Hex public key:   0000001ace57d0da17fc18562f4658ac6d093b2cc8bb7bd44853d0c196e24a9c
@@ -15,7 +16,7 @@ use nostr_sdk::prelude::*;
 async fn main() -> Result<()> {
     let keys = Keys::parse("e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c")?;
 
-    println!("🔑 Public key bech32: {}", keys.public_key().to_bech32()?);
+    println!("🔑 Electoral Commission Public key: {}", keys.public_key().to_bech32()?);
 
     // Build the signing client
     let client = Client::builder()
@@ -31,22 +32,37 @@ async fn main() -> Result<()> {
         Candidate::new(2, "Lobo 🐺"),
         Candidate::new(3, "Tigre 🐯"),
     ];
-    let counting = counting::ElectionCommissioner::new(candidates.clone());
+    let mut ec = ec::ElectionCommissioner::new(candidates.clone());
     let now = chrono::Utc::now();
     let future = now + chrono::Duration::days(5);
     let secs = future.timestamp() as u64;
     let future_ts = Timestamp::from(secs);
     let candidates_json = serde_json::to_string(&candidates)?;
     println!("🗳️ Candidatos: {:#?}", candidates_json);
+    // We publish the candidates list in a custom event with kind 35_000
     let event = EventBuilder::new(Kind::Custom(35_000), candidates_json)
         .tag(Tag::identifier("election-123"))
         .tag(Tag::expiration(future_ts))
         .sign(&keys).await?;
 
-    // Publica el evento en el relay
+    // Publish the event to the relay
     client.send_event(&event).await?;
 
-    println!("🎁 Evento con la lista de candidatos enviado! {:#?}", event);
+    // println!("🎁 Evento con la lista de candidatos enviado! {:#?}", event);
+    let file_path = "voters.json";
+    // Read voters json file
+    let json_content = fs::read_to_string(file_path)
+        .map_err(|e| anyhow::anyhow!("Error reading file {}: {}", file_path, e))?;
+    // 2. Parse the JSON string into a Vec<Voter>
+    let voters: Vec<Voter> = serde_json::from_str(&json_content)
+        .map_err(|e| anyhow::anyhow!("Error parsing JSON from {}: {}", file_path, e))?;
+
+    // 3. Iterate through the vector and print the name of each voter
+    println!("Voter Names:");
+    for voter in voters {
+        println!("👤 {}", voter.name);
+        ec.register_voter(&voter.pubkey);
+    }
     // tokio::time::sleep(std::time::Duration::from_secs(2)).await;
 
     Ok(())

@@ -1,0 +1,22 @@
+[
+    {
+        "name": "Alice",
+        "pubkey": "00001001063e6bf1b28f6514ac651afef7f51b2a792f0416a5e8273daa9eea6e",
+        "secret": "30df83c45dee3b379c91be29cbbf6ecdbcfd8e9d96979e98b9e8162505d2047a"
+    },
+    {
+        "name": "Bob",
+        "pubkey": "00000eab0ee981184e7e5dd144360885087f6a5889b46abfe5c402bf490fcd24",
+        "secret": "1485727f623f65dedfa38c0795623621e004986950d0167372213da0773ae2b7"
+    },
+    {
+        "name": "Charlie",
+        "pubkey": "00000699921ac7021b7da121da5bd762d90be830c3964ba12e82b590445797a6",
+        "secret": "4971d6cf62a8152e41d6d03c9608e1a2e9868ef8d7411d67e30c5155fedb8ef0"
+    },
+    {
+        "name": "Daniel",
+        "pubkey": "00000217c8b36c2098604aa15a2317739de96b62c3a49cb648da7b35ddc3c683",
+        "secret": "53d8392d02949b7d3aa05d0a9ee00fe6e0c2aae237f26f4a3ef3e05dcda3d99d"
+    }
+]

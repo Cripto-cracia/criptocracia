@@ -56,7 +56,7 @@ Registered users with a Nostr key pair (public and private). The public key (vot
 
 ## Todo list
 - [x] EC publish list of candidates as a Nostr event
-- [ ] EC: Add manually voters pubkeys
+- [x] EC: Add manually voters pubkeys
 - [ ] EC create a list of registration tokens to be send to voters (v0.2)
 - [ ] Voter creates key pair and sign the token (v0.2)
 - [ ] Voter send the registration token to EC in a gift wrap (v0.2)
