@@ -61,8 +61,11 @@ Registered users with a Nostr key pair (public and private). The public key (vot
 - [ ] Voter creates key pair and sign the token (v0.2)
 - [ ] Voter send the registration token to EC in a gift wrap (v0.2)
 - [ ] EC receives the registration token and save the voter's pubkey (v0.2)
-- [ ] Voter generates an unique voting token and send it to EC
+- [x] Voter generates a nonce, hash it and send it to EC
+- [x] voter: Add CLI to handle arguments
+- [ ] EC: async waiting for events
 - [ ] EC blind sign the voting token and send it back to the voter
 - [ ] Voter cast vote
 - [ ] EC receive vote
 - [ ] EC Count votes and publish to Nostr
+- [ ] voter: Add command to list active elections and candidates

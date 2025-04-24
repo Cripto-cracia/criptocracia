@@ -48,7 +48,7 @@ async fn main() -> Result<()> {
     // Publish the event to the relay
     client.send_event(&event).await?;
 
-    // println!("🎁 Evento con la lista de candidatos enviado! {:#?}", event);
+    println!("🎁 Event with the list of candidates sent!");
     let file_path = "data/voters_pubkeys.json";
     // Read voters json file
     let json_content = fs::read_to_string(file_path)
