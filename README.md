@@ -63,7 +63,7 @@ Registered users with a Nostr key pair (public and private). The public key (vot
 - [ ] EC receives the registration token and save the voter's pubkey (v0.2)
 - [x] Voter generates a nonce, hash it and send it to EC
 - [x] voter: Add CLI to handle arguments
-- [ ] EC: async waiting for events
+- [x] EC: async waiting for events and handle logs
 - [ ] EC blind sign the voting token and send it back to the voter
 - [ ] Voter cast vote
 - [ ] EC receive vote

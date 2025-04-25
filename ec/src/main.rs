@@ -5,6 +5,9 @@ use anyhow::Result;
 use types::{Candidate, Voter};
 use nostr_sdk::prelude::*;
 use std::fs;
+use tokio::sync::mpsc;
+use fern::Dispatch;
+use chrono::Local;
 
 // Demo keys for the electoral commission:
 // Hex public key:   0000001ace57d0da17fc18562f4658ac6d093b2cc8bb7bd44853d0c196e24a9c
@@ -12,8 +15,27 @@ use std::fs;
 // Npub public key:  npub1qqqqqxkw2lgd59lurptz73jc43ksjwevezahh4zg20gvr9hzf2wq8nzqyl
 // Nsec private key: nsec1u0enx5rjskqv65wm3aqy34s5jyx53fwq6lc676q3aq7q0lyxtfwqph3yue
 
+/// Initialize logger function
+fn setup_logger(level: log::LevelFilter) -> Result<(), fern::InitError> {
+    Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "[{}] [{}] - {}",
+                Local::now().format("%Y-%m-%d %H:%M:%S"),
+                record.level(),
+                message
+            ))
+        })
+        .level(level)
+        .chain(fern::log_file("app.log")?)
+        .apply()?;
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Initialize logger
+    setup_logger(log::LevelFilter::Info).expect("Can't initialize logger");
     let keys = Keys::parse("e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c")?;
 
     println!("🔑 Electoral Commission Public key: {}", keys.public_key().to_bech32()?);
@@ -63,7 +85,31 @@ async fn main() -> Result<()> {
         println!("👤 {}", voter.name);
         ec.register_voter(&voter.pubkey);
     }
-    // tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    let subscription = Filter::new()
+        .pubkey(keys.public_key())
+        .kind(Kind::GiftWrap)
+        .limit(0);
+    // Client subscription
+    client.subscribe(subscription, None).await?;
+    // Set up channel for real-time order updates
+    let (tx, mut rx) = mpsc::channel(100);
+
+    // Spawn a task to handle Nostr events
+    tokio::spawn(async move {
+        let mut notifications = client.notifications();
+        while let Ok(notification) = notifications.recv().await {
+            if let RelayPoolNotification::Event { event, .. } = notification {
+                println!("New event rx: {:#?}", event);
+                let _ = tx.send(event).await;
+            }
+        }
+    });
+    loop {
+        // Check for new orders without blocking
+        while let Ok(event) = rx.try_recv() {
+            log::info!("New event rx: {:#?}", event);
+        }
+    }
 
     Ok(())
 }
