@@ -8,6 +8,7 @@ nostr-sdk = { workspace = true, features = ["nip59"] }
 anyhow = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
+base64 = { workspace = true }
 chrono = "0.4.40"
 tracing-subscriber = "0.3.19"
 rsa              = "0.9.8"              # Sin la feature `pkcs8` para evitar conflicto

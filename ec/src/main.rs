@@ -1,6 +1,7 @@
 mod types;
 mod ec;
 
+use base64::{engine::general_purpose, Engine as _};
 use anyhow::Result;
 use types::{Candidate, Voter};
 use nostr_sdk::prelude::*;
@@ -99,7 +100,25 @@ async fn main() -> Result<()> {
         let mut notifications = client.notifications();
         while let Ok(notification) = notifications.recv().await {
             if let RelayPoolNotification::Event { event, .. } = notification {
-                println!("New event rx: {:#?}", event);
+                // Validate event signature
+                if event.verify().is_err() {
+                    log::warn!("Error in event verification")
+                };
+                let event = match nip59::extract_rumor(&keys, &event).await {
+                    Ok(u) => u,
+                    Err(_) => {
+                        println!("Error unwrapping gift");
+                        continue;
+                    }
+                };
+                let decoded_bytes = match general_purpose::STANDARD.decode(&event.rumor.content) {
+                    Ok(bytes) => bytes,
+                    Err(e) => {
+                        log::warn!("Error decoding content: {}", e);
+                        continue;
+                    }
+                };
+                println!("{:#?}", decoded_bytes);
                 let _ = tx.send(event).await;
             }
         }
