@@ -1,5 +1,7 @@
 # Criptocracia
 
+![logo](logo.png)
+
 *Disclaimer: The author is NOT a cryptographer and this work has not been reviewed. This means that there is very likely a fatal flaw somewhere. Criptocracia is still experimental and not production-ready.*
 
 ## Context
