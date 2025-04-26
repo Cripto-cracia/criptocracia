@@ -9,6 +9,7 @@ use std::fs;
 use tokio::sync::mpsc;
 use fern::Dispatch;
 use chrono::Local;
+use num_bigint_dig::BigUint;
 
 // Demo keys for the electoral commission:
 // Hex public key:   0000001ace57d0da17fc18562f4658ac6d093b2cc8bb7bd44853d0c196e24a9c
@@ -118,7 +119,8 @@ async fn main() -> Result<()> {
                         continue;
                     }
                 };
-                println!("{:#?}", decoded_bytes);
+                let h_n = BigUint::from_bytes_be(&decoded_bytes);
+                println!("{:#?}", h_n.to_bytes_be());
                 let _ = tx.send(event).await;
             }
         }
@@ -129,6 +131,4 @@ async fn main() -> Result<()> {
             log::info!("New event rx: {:#?}", event);
         }
     }
-
-    Ok(())
 }

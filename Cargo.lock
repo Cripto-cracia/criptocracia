@@ -476,6 +476,7 @@ dependencies = [
  "fern",
  "log",
  "nostr-sdk",
+ "num-bigint-dig",
  "rand 0.8.5",
  "rsa",
  "serde",

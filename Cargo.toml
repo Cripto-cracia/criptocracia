@@ -18,3 +18,4 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 anyhow = "1"
 nostr-sdk = { version = "0.41", features = ["nip59"] }
 base64 = "0.22.1"
+num-bigint-dig   = { version = "0.8", features = ["rand"] }

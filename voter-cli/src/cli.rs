@@ -57,8 +57,15 @@ pub struct CLIArgs {
     #[arg(
         short = 'v',
         long = "vote",
-        required = true,
+        required = false,
         help = "Enter the Id of the candidate you want to vote for.",
     )]
     pub vote: usize,
+    #[arg(
+        short = 't',
+        long = "request-token",
+        required = false,
+        help = "Request a voting token for a hash of a nonce.",
+    )]
+    pub voting_token: bool,
 }
