@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "ec",
+    "voter-cli",
     "voter",
 ]
 resolver = "2"

@@ -12,30 +12,47 @@
          pub voter_pk: String,
          pub blinded_hash: BigUint,
      }
-     
-     /// Commissioner of Elections (CE) manages the election process.
-     pub struct ElectionCommissioner {
-         priv_rsa: RsaPrivateKey,
-         pub_rsa: RsaPublicKey,
-         authorized_voters: HashSet<String>, // allowed pubkeys
-         used_tokens: HashSet<BigUint>,       // h_n already used
-         votes: Vec<u8>,                     // votes received
-         candidates: Vec<Candidate>,
+
+     pub enum Status {
+         /// Election is open for voting.
+         Open,
+         /// Election is closed for voting.
+         Closed,
      }
      
-     impl ElectionCommissioner {
+     /// Commissioner of Elections (CE) manages the election process.
+     pub struct Election {
+        pub id: uuid::Uuid,
+        pub priv_rsa: RsaPrivateKey,
+        pub pub_rsa: RsaPublicKey,
+        pub authorized_voters: HashSet<String>, // allowed pubkeys
+        pub used_tokens: HashSet<BigUint>,       // h_n already used
+        pub votes: Vec<u8>,                     // votes received
+        pub candidates: Vec<Candidate>,
+        pub start_time: u64,
+        pub end_time: u64,
+        pub status: Status,
+     }
+     
+     impl Election {
          /// Create a new EC with a 2048-bit RSA key.
-         pub fn new(candidates: Vec<Candidate>) -> Self {
+         pub fn new(candidates: Vec<Candidate>, start_time: u64, duration: u64) -> Self {
              let mut rng = OsRng;
              let priv_rsa = RsaPrivateKey::new(&mut rng, 2048).expect("Failed to generate RSA key");
              let pub_rsa = RsaPublicKey::from(&priv_rsa);
+             let end_time = start_time + duration;
+             let id = uuid::Uuid::new_v4();
              Self {
-                 priv_rsa,
-                 pub_rsa,
-                 authorized_voters: HashSet::new(),
-                 used_tokens: HashSet::new(),
-                 votes: vec![],
-                 candidates,
+                id,
+                priv_rsa,
+                pub_rsa,
+                authorized_voters: HashSet::new(),
+                used_tokens: HashSet::new(),
+                votes: vec![],
+                candidates,
+                start_time,
+                end_time,
+                status: Status::Open,
              }
          }
      
@@ -112,6 +129,20 @@
              if let Some((winner, _)) = tally.iter().max_by_key(|(_, c)| *c) {
                  println!("🏆 Ganador: {}", winner.name);
              }
+         }
+
+         pub fn as_json(&self) -> String {
+            let election_data = serde_json::json!({
+                "id": self.id.to_string(),
+                "start_time": self.start_time,
+                "end_time": self.end_time,
+                "candidates": self.candidates,
+                "status": match self.status {
+                    Status::Open => "open",
+                    Status::Closed => "closed",
+                },
+            });
+            election_data.to_string()
          }
      }
      

@@ -56,16 +56,19 @@ async fn main() -> Result<()> {
         Candidate::new(2, "Lobo 🐺"),
         Candidate::new(3, "Tigre 🐯"),
     ];
-    let mut ec = ec::ElectionCommissioner::new(candidates.clone());
     let now = chrono::Utc::now();
+    let start_time = now.timestamp() as u64;
+    // Duration of the election
+    let duration = 1 * 60 * 60; // 1 hour in seconds
+    let mut election = ec::Election::new(candidates.clone(), start_time, duration);
+    // Timestamp for the expiration of the election
     let future = now + chrono::Duration::days(5);
     let secs = future.timestamp() as u64;
     let future_ts = Timestamp::from(secs);
-    let candidates_json = serde_json::to_string(&candidates)?;
-    println!("🗳️ Candidatos: {:#?}", candidates_json);
+    println!("🗳️ Election: {}", election.as_json());
     // We publish the candidates list in a custom event with kind 35_000
-    let event = EventBuilder::new(Kind::Custom(35_000), candidates_json)
-        .tag(Tag::identifier("election-123"))
+    let event = EventBuilder::new(Kind::Custom(35_000), election.as_json())
+        .tag(Tag::identifier(election.id.to_string()))
         .tag(Tag::expiration(future_ts))
         .sign(&keys).await?;
 
@@ -85,7 +88,7 @@ async fn main() -> Result<()> {
     println!("Voter Names:");
     for voter in voters {
         println!("👤 {}", voter.name);
-        ec.register_voter(&voter.pubkey);
+        election.register_voter(&voter.pubkey);
     }
     let subscription = Filter::new()
         .pubkey(keys.public_key())
