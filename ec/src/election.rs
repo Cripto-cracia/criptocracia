@@ -14,10 +14,10 @@
      }
 
      pub enum Status {
-         /// Election is open for voting.
-         Open,
-         /// Election is closed for voting.
-         Closed,
+        Open,
+        InProgress,
+        Finished,
+        Canceled,
      }
      
      /// Commissioner of Elections (CE) manages the election process.

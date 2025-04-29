@@ -1,11 +1,14 @@
 pub mod settings;
+pub mod util;
+pub mod election;
 
 use crate::settings::{Settings, init_settings};
+use crate::util::setup_logger;
+use crate::election::Election;
 
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use std::io::stdout;
-
 use chrono::{Utc, Duration as ChronoDuration};
 use futures::StreamExt;
 use crossterm::event::{Event as CEvent, EventStream, KeyCode, KeyEvent};
@@ -18,8 +21,6 @@ use ratatui::widgets::{Tabs, Block, Borders, Table, Row, Cell, Paragraph};
 use ratatui::text::{Line, Span};
 use ratatui::Terminal;
 use tokio::time::{interval, Duration};
-use fern::Dispatch;
-use chrono::Local;
 use nostr_sdk::prelude::*;
 use nostr_sdk::prelude::RelayPoolNotification;
 use std::sync::OnceLock;
@@ -30,56 +31,6 @@ static SETTINGS: OnceLock<Settings> = OnceLock::new();
 // Official Mostro colors.
 const PRIMARY_COLOR: Color = Color::Rgb(3, 255, 254);    // #03fffe
 const BACKGROUND_COLOR: Color = Color::Rgb(5, 35, 39);   // #052327
-
-/// Initialize logger function
-fn setup_logger(level: &str) -> Result<(), fern::InitError> {
-    let log_level = match level.to_lowercase().as_str() {
-        "trace" => log::LevelFilter::Trace,
-        "debug" => log::LevelFilter::Debug,
-        "info" => log::LevelFilter::Info,
-        "warn" => log::LevelFilter::Warn,
-        "error" => log::LevelFilter::Error,
-        _ => log::LevelFilter::Info, // Default to Info for invalid values
-    };
-    Dispatch::new()
-        .format(|out, message, record| {
-            out.finish(format_args!(
-                "[{}] [{}] - {}",
-                Local::now().format("%Y-%m-%d %H:%M:%S"),
-                record.level(),
-                message
-            ))
-        })
-        .level(log_level)
-        .chain(fern::log_file("app.log")?) // Guarda en logs/app.log
-        .apply()?;
-    Ok(())
-}
-
-pub enum Status {
-    Active,
-    InProgress,
-    Finished,
-    Canceled,
-}
-pub struct Candidate {
-    pub id: u8,
-    pub name: &'static str,
-}
-
-impl Candidate {
-    pub fn new(id: u8, name: &'static str) -> Self {
-        Self { id, name }
-    }
-}
-
-pub struct Election {
-    pub id: String,
-    pub candidate: Vec<Candidate>,
-    pub start_time: u64,
-    pub end_time: u64,
-    pub status: Status,
-}
 
 /// Draws the TUI interface with tabs and active content.
 /// The "Elections" tab shows a table of active elections and highlights the selected row.
