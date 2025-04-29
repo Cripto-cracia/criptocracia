@@ -1,5 +1,5 @@
 mod types;
-mod ec;
+mod election;
 
 use base64::{engine::general_purpose, Engine as _};
 use anyhow::Result;
@@ -52,15 +52,16 @@ async fn main() -> Result<()> {
     client.connect().await;
 
     let candidates: Vec<Candidate> = vec![
-        Candidate::new(1, "Oso 🐻"),
-        Candidate::new(2, "Lobo 🐺"),
-        Candidate::new(3, "Tigre 🐯"),
+        Candidate::new(1, "Burro 🐴"),
+        Candidate::new(2, "Oveja 🐑"),
+        Candidate::new(3, "Perezoso 🦥"),
     ];
     let now = chrono::Utc::now();
     let start_time = now.timestamp() as u64;
     // Duration of the election
     let duration = 1 * 60 * 60; // 1 hour in seconds
-    let mut election = ec::Election::new(candidates.clone(), start_time, duration);
+    let election_name = "Libertad 2024".to_string();
+    let mut election = election::Election::new(election_name, candidates.clone(), start_time, duration);
     // Timestamp for the expiration of the election
     let future = now + chrono::Duration::days(5);
     let secs = future.timestamp() as u64;

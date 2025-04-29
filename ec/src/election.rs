@@ -23,6 +23,7 @@
      /// Commissioner of Elections (CE) manages the election process.
      pub struct Election {
         pub id: uuid::Uuid,
+        pub name: String,
         pub priv_rsa: RsaPrivateKey,
         pub pub_rsa: RsaPublicKey,
         pub authorized_voters: HashSet<String>, // allowed pubkeys
@@ -36,7 +37,7 @@
      
      impl Election {
          /// Create a new EC with a 2048-bit RSA key.
-         pub fn new(candidates: Vec<Candidate>, start_time: u64, duration: u64) -> Self {
+         pub fn new(name: String, candidates: Vec<Candidate>, start_time: u64, duration: u64) -> Self {
              let mut rng = OsRng;
              let priv_rsa = RsaPrivateKey::new(&mut rng, 2048).expect("Failed to generate RSA key");
              let pub_rsa = RsaPublicKey::from(&priv_rsa);
@@ -44,6 +45,7 @@
              let id = uuid::Uuid::new_v4();
              Self {
                 id,
+                name,
                 priv_rsa,
                 pub_rsa,
                 authorized_voters: HashSet::new(),
@@ -124,16 +126,17 @@
              println!("\n──────── Final results ────────");
              let tally = self.tally();
              for (cand, count) in &tally {
-                 println!("{}: {} voto(s)", cand.name, count);
+                 println!("{}: {} vote(s)", cand.name, count);
              }
              if let Some((winner, _)) = tally.iter().max_by_key(|(_, c)| *c) {
-                 println!("🏆 Ganador: {}", winner.name);
+                 println!("🏆 Winner: {}", winner.name);
              }
          }
 
          pub fn as_json(&self) -> String {
             let election_data = serde_json::json!({
                 "id": self.id.to_string(),
+                "name": self.name,
                 "start_time": self.start_time,
                 "end_time": self.end_time,
                 "candidates": self.candidates,
