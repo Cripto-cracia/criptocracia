@@ -142,7 +142,9 @@
                 "candidates": self.candidates,
                 "status": match self.status {
                     Status::Open => "open",
-                    Status::Closed => "closed",
+                    Status::InProgress => "in-progress",
+                    Status::Finished => "finished",
+                    Status::Canceled => "canceled",
                 },
             });
             election_data.to_string()

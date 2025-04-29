@@ -40,76 +40,67 @@ fn ui_draw(
     elections: &Arc<Mutex<Vec<Election>>>,
     selected_order_idx: usize,
 ) {
-    // Create layout: one row for tabs and the rest for content.
-    let chunks = Layout::new(
+    // Create layout: two rows
+    let vertical_chunks = Layout::new(
         Direction::Vertical,
-        &[Constraint::Length(3), Constraint::Min(0)]
+        &[Constraint::Percentage(40), Constraint::Percentage(60)]
     )
     .split(f.area());
+    let horizontal_chunks = Layout::new(
+        Direction::Horizontal,
+        &[Constraint::Percentage(50), Constraint::Percentage(50)]
+    )
+        .split(vertical_chunks[0]);
 
-    // Define tab titles.
-    let tab_titles = ["Elections", "My Elections", "Vote", "Info"]
+        let header_cells = ["Id", "Name", "Status", "Starts"]
         .iter()
-        .map(|t| Line::from(*t))
-        .collect::<Vec<Line>>();
-    let tabs = Tabs::new(tab_titles)
-        .select(active_tab)
-        .block(Block::default().borders(Borders::ALL).style(Style::default().bg(BACKGROUND_COLOR)))
-        .highlight_style(Style::default().fg(PRIMARY_COLOR).add_modifier(Modifier::BOLD));
-    f.render_widget(tabs, chunks[0]);
+        .map(|h| Cell::from(*h))
+        .collect::<Vec<Cell>>();
+    let header = Row::new(header_cells)
+        .style(Style::default().add_modifier(Modifier::BOLD));
 
-    let content_area = chunks[1];
-    if active_tab == 0 {
-        // "Orders" tab: show table with pending orders.
-        let header_cells = ["Id", "Status", "Starts", "Ends"]
-            .iter()
-            .map(|h| Cell::from(*h))
-            .collect::<Vec<Cell>>();
-        let header = Row::new(header_cells)
-            .style(Style::default().add_modifier(Modifier::BOLD));
+    let elections_lock = elections.lock().unwrap();
+    let rows: Vec<Row> = elections_lock.iter().enumerate().map(|(i, _election)| {
+        let row = Row::new(vec![
+            Cell::from(""),
+            Cell::from(""),
+            Cell::from(""),
+            Cell::from(""),
+        ]);
+        if i == selected_order_idx {
+            // Highlight the selected row.
+            row.style(Style::default().bg(PRIMARY_COLOR).fg(Color::Black))
+        } else {
+            row
+        }
+    }).collect();
 
-        let orders_lock = elections.lock().unwrap();
-        let rows: Vec<Row> = orders_lock.iter().enumerate().map(|(i, _election)| {
-            let row = Row::new(vec![
-                Cell::from(""),
-                Cell::from(""),
-                Cell::from(""),
-                Cell::from(""),
-            ]);
-            if i == selected_order_idx {
-                // Highlight the selected row.
-                row.style(Style::default().bg(PRIMARY_COLOR).fg(Color::Black))
-            } else {
-                row
-            }
-        }).collect();
+    let elections_table = Table::new(
+        rows,
+        &[
+            Constraint::Length(36),
+            Constraint::Length(12),
+            Constraint::Max(10),
+            Constraint::Max(10),
+        ]
+    )
+    .header(header)
+    .block(Block::default().title("Elections").borders(Borders::ALL).style(Style::default().bg(BACKGROUND_COLOR)));
+    f.render_widget(elections_table, horizontal_chunks[0]);
 
-        let table = Table::new(
-            rows,
-            &[
-                Constraint::Max(5),
-                Constraint::Max(11),
-                Constraint::Max(5),
-                Constraint::Max(12),
-                Constraint::Min(10),
-            ]
-        )
-        .header(header)
-        .block(Block::default().title("Elections").borders(Borders::ALL).style(Style::default().bg(BACKGROUND_COLOR)));
-        f.render_widget(table, content_area);
-    } else if active_tab == 1 {
-        let paragraph = Paragraph::new(Span::raw("Coming soon"))
-            .block(Block::default().title("My elections").borders(Borders::ALL).style(Style::default().bg(BACKGROUND_COLOR)));
-        f.render_widget(paragraph, content_area);
-    } else if active_tab == 2 {
-        let paragraph = Paragraph::new(Span::raw("Coming soon"))
-            .block(Block::default().title("Vote").borders(Borders::ALL).style(Style::default().bg(BACKGROUND_COLOR)));
-        f.render_widget(paragraph, content_area);
-    } else if active_tab == 3 {
-        let paragraph = Paragraph::new(Span::raw("Coming soon"))
-            .block(Block::default().title("Info").borders(Borders::ALL).style(Style::default().bg(BACKGROUND_COLOR)));
-        f.render_widget(paragraph, content_area);
-    }
+    f.render_widget(
+        Block::default()
+                .title("Candidates")
+                .borders(Borders::ALL)
+                .style(Style::default().bg(BACKGROUND_COLOR)),
+        horizontal_chunks[1]);
+    let ballot_area = vertical_chunks[1];
+
+
+    f.render_widget(        Block::default()
+    .title("Ballot")
+    .borders(Borders::ALL)
+    .style(Style::default().bg(BACKGROUND_COLOR)), ballot_area);
 }
 
 #[tokio::main]
@@ -171,7 +162,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // Event handling: keyboard input and periodic UI refresh.
     let mut events = EventStream::new();
     let mut refresh_interval = interval(Duration::from_millis(500));
-    let mut active_tab: usize = 0;
+    let mut active_area: usize = 0;
     // Selected order index for the "Orders" table.
     let mut selected_order_idx: usize = 0;
 
@@ -182,17 +173,17 @@ async fn main() -> Result<(), anyhow::Error> {
                     if let CEvent::Key(KeyEvent { code, .. }) = event {
                         match code {
                             KeyCode::Left => {
-                                if active_tab > 0 {
-                                    active_tab -= 1;
+                                if active_area > 0 {
+                                    active_area -= 1;
                                 }
                             }
                             KeyCode::Right => {
-                                if active_tab < 3 {
-                                    active_tab += 1;
+                                if active_area < 3 {
+                                    active_area += 1;
                                 }
                             }
                             KeyCode::Up => {
-                                if active_tab == 0 {
+                                if active_area == 0 {
                                     let orders_len = elections.lock().unwrap().len();
                                     if orders_len > 0 && selected_order_idx > 0 {
                                         selected_order_idx -= 1;
@@ -200,7 +191,7 @@ async fn main() -> Result<(), anyhow::Error> {
                                 }
                             }
                             KeyCode::Down => {
-                                if active_tab == 0 {
+                                if active_area == 0 {
                                     let orders_len = elections.lock().unwrap().len();
                                     if orders_len > 0 && selected_order_idx < orders_len.saturating_sub(1) {
                                         selected_order_idx += 1;
@@ -219,7 +210,7 @@ async fn main() -> Result<(), anyhow::Error> {
             }
         }
 
-        terminal.draw(|f| ui_draw(f, active_tab, &elections, selected_order_idx))?;
+        terminal.draw(|f| ui_draw(f, active_area, &elections, selected_order_idx))?;
     }
 
     // Restore terminal to its original state.
