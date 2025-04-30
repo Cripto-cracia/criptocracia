@@ -38,21 +38,16 @@ fn ui_draw(
     f: &mut ratatui::Frame,
     active_area: usize,
     elections: &Arc<Mutex<Vec<Election>>>,
-    selected_order_idx: usize,
+    selected_election_idx: usize,
 ) {
-    // Create layout: two rows
+    // Create layout: three rows
     let vertical_chunks = Layout::new(
         Direction::Vertical,
-        &[Constraint::Percentage(40), Constraint::Percentage(60)]
+        [Constraint::Percentage(30), Constraint::Percentage(40), Constraint::Percentage(30)]
     )
     .split(f.area());
-    let horizontal_chunks = Layout::new(
-        Direction::Horizontal,
-        &[Constraint::Percentage(50), Constraint::Percentage(50)]
-    )
-        .split(vertical_chunks[0]);
 
-        let header_cells = ["Id", "Name", "Status", "Starts"]
+    let header_cells = ["Id", "Name", "Status", "Starts"]
         .iter()
         .map(|h| Cell::from(*h))
         .collect::<Vec<Cell>>();
@@ -72,7 +67,7 @@ fn ui_draw(
             }),
             Cell::from(election.start_time.to_string()),
         ]);
-        if i == selected_order_idx {
+        if i == selected_election_idx {
             // Highlight the selected row.
             row.style(Style::default().bg(PRIMARY_COLOR).fg(Color::Black))
         } else {
@@ -84,28 +79,26 @@ fn ui_draw(
         rows,
         &[
             Constraint::Length(36),
-            Constraint::Length(12),
+            Constraint::Min(16),
             Constraint::Max(10),
             Constraint::Max(10),
         ]
     )
     .header(header)
     .block(Block::default().title("Elections").borders(Borders::ALL).style(Style::default().bg(BACKGROUND_COLOR)));
-    f.render_widget(elections_table, horizontal_chunks[0]);
+    f.render_widget(elections_table, vertical_chunks[0]);
 
     f.render_widget(
         Block::default()
                 .title("Candidates")
                 .borders(Borders::ALL)
                 .style(Style::default().bg(BACKGROUND_COLOR)),
-        horizontal_chunks[1]);
-    let ballot_area = vertical_chunks[1];
-
+                vertical_chunks[1]);
 
     f.render_widget(        Block::default()
     .title("Ballot")
     .borders(Borders::ALL)
-    .style(Style::default().bg(BACKGROUND_COLOR)), ballot_area);
+    .style(Style::default().bg(BACKGROUND_COLOR)), vertical_chunks[2]);
 }
 
 #[tokio::main]
