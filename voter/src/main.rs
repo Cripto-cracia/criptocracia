@@ -65,7 +65,8 @@ fn ui_draw(
                 Status::Finished => "Finished",
                 Status::Canceled => "Canceled",
             }),
-            Cell::from(election.start_time.to_string()),
+            Cell::from(chrono::DateTime::from_timestamp(election.start_time as i64, 0)
+                .map_or_else(|| "Invalid Time".to_string(), |dt| dt.format("%Y-%m-%d %H:%M").to_string())),
         ]);
         if i == selected_election_idx {
             // Highlight the selected row.
@@ -81,7 +82,7 @@ fn ui_draw(
             Constraint::Length(36),
             Constraint::Min(16),
             Constraint::Max(10),
-            Constraint::Max(10),
+            Constraint::Max(18),
         ]
     )
     .header(header)
@@ -154,7 +155,10 @@ async fn main() -> Result<(), anyhow::Error> {
                 match Election::parse_event(&event) {
                     Ok(election) => {
                         let mut elections_lock = elections_clone.lock().unwrap();
-                        elections_lock.push(election);
+                                // Only add if not already in the list
+                        if !elections_lock.iter().any(|e| e.id == election.id) {
+                            elections_lock.push(election);
+                        }
                     }
                     Err(err) => {
                         log::error!("Failed to parse election: {}", err);
