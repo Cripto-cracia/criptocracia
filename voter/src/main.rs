@@ -4,7 +4,7 @@ pub mod election;
 
 use crate::settings::{Settings, init_settings};
 use crate::util::setup_logger;
-use crate::election::Election;
+use crate::election::{Election, Status};
 
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
@@ -36,23 +36,18 @@ const BACKGROUND_COLOR: Color = Color::Rgb(5, 35, 39);   // #052327
 /// The "Elections" tab shows a table of active elections and highlights the selected row.
 fn ui_draw(
     f: &mut ratatui::Frame,
-    active_tab: usize,
+    active_area: usize,
     elections: &Arc<Mutex<Vec<Election>>>,
-    selected_order_idx: usize,
+    selected_election_idx: usize,
 ) {
-    // Create layout: two rows
+    // Create layout: three rows
     let vertical_chunks = Layout::new(
         Direction::Vertical,
-        &[Constraint::Percentage(40), Constraint::Percentage(60)]
+        [Constraint::Percentage(30), Constraint::Percentage(40), Constraint::Percentage(30)]
     )
     .split(f.area());
-    let horizontal_chunks = Layout::new(
-        Direction::Horizontal,
-        &[Constraint::Percentage(50), Constraint::Percentage(50)]
-    )
-        .split(vertical_chunks[0]);
 
-        let header_cells = ["Id", "Name", "Status", "Starts"]
+    let header_cells = ["Id", "Name", "Status", "Starts"]
         .iter()
         .map(|h| Cell::from(*h))
         .collect::<Vec<Cell>>();
@@ -60,14 +55,20 @@ fn ui_draw(
         .style(Style::default().add_modifier(Modifier::BOLD));
 
     let elections_lock = elections.lock().unwrap();
-    let rows: Vec<Row> = elections_lock.iter().enumerate().map(|(i, _election)| {
+    let rows: Vec<Row> = elections_lock.iter().enumerate().map(|(i, election)| {
         let row = Row::new(vec![
-            Cell::from(""),
-            Cell::from(""),
-            Cell::from(""),
-            Cell::from(""),
+            Cell::from(election.id.to_string()),
+            Cell::from(election.name.clone()),
+            Cell::from(match election.status {
+                Status::Open => "Open",
+                Status::InProgress => "In Progress",
+                Status::Finished => "Finished",
+                Status::Canceled => "Canceled",
+            }),
+            Cell::from(chrono::DateTime::from_timestamp(election.start_time as i64, 0)
+                .map_or_else(|| "Invalid Time".to_string(), |dt| dt.format("%Y-%m-%d %H:%M").to_string())),
         ]);
-        if i == selected_order_idx {
+        if i == selected_election_idx {
             // Highlight the selected row.
             row.style(Style::default().bg(PRIMARY_COLOR).fg(Color::Black))
         } else {
@@ -79,28 +80,26 @@ fn ui_draw(
         rows,
         &[
             Constraint::Length(36),
-            Constraint::Length(12),
+            Constraint::Min(16),
             Constraint::Max(10),
-            Constraint::Max(10),
+            Constraint::Max(18),
         ]
     )
     .header(header)
     .block(Block::default().title("Elections").borders(Borders::ALL).style(Style::default().bg(BACKGROUND_COLOR)));
-    f.render_widget(elections_table, horizontal_chunks[0]);
+    f.render_widget(elections_table, vertical_chunks[0]);
 
     f.render_widget(
         Block::default()
                 .title("Candidates")
                 .borders(Borders::ALL)
                 .style(Style::default().bg(BACKGROUND_COLOR)),
-        horizontal_chunks[1]);
-    let ballot_area = vertical_chunks[1];
-
+                vertical_chunks[1]);
 
     f.render_widget(        Block::default()
     .title("Ballot")
     .borders(Borders::ALL)
-    .style(Style::default().bg(BACKGROUND_COLOR)), ballot_area);
+    .style(Style::default().bg(BACKGROUND_COLOR)), vertical_chunks[2]);
 }
 
 #[tokio::main]
@@ -153,8 +152,18 @@ async fn main() -> Result<(), anyhow::Error> {
     tokio::spawn(async move {
         while let Ok(notification) = notifications.recv().await {
             if let RelayPoolNotification::Event { event, .. } = notification {
-                let mut elections_lock = elections_clone.lock().unwrap();
-                // TODO
+                match Election::parse_event(&event) {
+                    Ok(election) => {
+                        let mut elections_lock = elections_clone.lock().unwrap();
+                                // Only add if not already in the list
+                        if !elections_lock.iter().any(|e| e.id == election.id) {
+                            elections_lock.push(election);
+                        }
+                    }
+                    Err(err) => {
+                        log::error!("Failed to parse election: {}", err);
+                    }
+                }
             }
         }
     });
@@ -163,8 +172,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let mut events = EventStream::new();
     let mut refresh_interval = interval(Duration::from_millis(500));
     let mut active_area: usize = 0;
-    // Selected order index for the "Orders" table.
-    let mut selected_order_idx: usize = 0;
+    // Selected election index
+    let mut selected_election_idx: usize = 0;
 
     loop {
         tokio::select! {
@@ -185,16 +194,16 @@ async fn main() -> Result<(), anyhow::Error> {
                             KeyCode::Up => {
                                 if active_area == 0 {
                                     let orders_len = elections.lock().unwrap().len();
-                                    if orders_len > 0 && selected_order_idx > 0 {
-                                        selected_order_idx -= 1;
+                                    if orders_len > 0 && selected_election_idx > 0 {
+                                        selected_election_idx -= 1;
                                     }
                                 }
                             }
                             KeyCode::Down => {
                                 if active_area == 0 {
                                     let orders_len = elections.lock().unwrap().len();
-                                    if orders_len > 0 && selected_order_idx < orders_len.saturating_sub(1) {
-                                        selected_order_idx += 1;
+                                    if orders_len > 0 && selected_election_idx < orders_len.saturating_sub(1) {
+                                        selected_election_idx += 1;
                                     }
                                 }
                             }
@@ -210,7 +219,7 @@ async fn main() -> Result<(), anyhow::Error> {
             }
         }
 
-        terminal.draw(|f| ui_draw(f, active_area, &elections, selected_order_idx))?;
+        terminal.draw(|f| ui_draw(f, active_area, &elections, selected_election_idx))?;
     }
 
     // Restore terminal to its original state.
