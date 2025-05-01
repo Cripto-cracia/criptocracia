@@ -6,6 +6,7 @@ use crate::election::{Election, Status};
 use crate::settings::{Settings, init_settings};
 use crate::util::setup_logger;
 
+use base64::engine::{Engine, general_purpose};
 use chrono::{Duration as ChronoDuration, Utc};
 use crossterm::event::{Event as CEvent, EventStream, KeyCode, KeyEvent};
 use crossterm::execute;
@@ -15,12 +16,15 @@ use crossterm::terminal::{
 use futures::StreamExt;
 use nostr_sdk::prelude::RelayPoolNotification;
 use nostr_sdk::prelude::*;
+use num_bigint_dig::{BigUint, RandBigInt};
+use rand::rngs::OsRng;
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, Tabs};
+use sha2::{Digest, Sha256};
 use std::cmp::Reverse;
 use std::io::stdout;
 use std::str::FromStr;
@@ -161,6 +165,10 @@ fn ui_draw(
     f.render_widget(block_b, chunks[2]);
 }
 
+// async fn obtain_token(client: Client) -> BigUint {
+
+// }
+
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     log::info!("Criptocracia started");
@@ -183,7 +191,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Configure Nostr client.
     let my_keys = Keys::parse(&settings.secret_key)?;
-    let client = Client::new(my_keys);
+    let client = Client::new(my_keys.clone());
     // Add the Mostro relay.
     client.add_relay("wss://relay.mostro.network").await?;
     client.connect().await;
@@ -192,9 +200,9 @@ async fn main() -> Result<(), anyhow::Error> {
     let ec_pubkey = PublicKey::from_str(settings.ec_public_key.as_str())
         .map_err(|e| anyhow::anyhow!("Invalid EC pubkey: {}", e))?;
 
-    // Calculate timestamp for events in the last 2 day.
+    // Calculate timestamp for events in the last day.
     let since_time = Utc::now()
-        .checked_sub_signed(ChronoDuration::days(2))
+        .checked_sub_signed(ChronoDuration::days(1))
         .ok_or_else(|| anyhow::anyhow!("Failed to compute time"))?
         .timestamp() as u64;
     let timestamp = Timestamp::from(since_time);
@@ -205,18 +213,45 @@ async fn main() -> Result<(), anyhow::Error> {
     // Subscribe to the filter.
     client.subscribe(filter, None).await?;
 
+    // Build the filter for NIP-59 events from the Electoral commission.
+    let filter = Filter::new()
+        .kind(Kind::GiftWrap)
+        .pubkey(my_keys.public_key())
+        .limit(20)
+        .since(timestamp);
+    client.subscribe(filter, None).await?;
+
+    let cloned_client = client.clone();
+
     // Asynchronous task to handle incoming notifications.
     let elections_clone = Arc::clone(&elections);
     tokio::spawn(async move {
         let mut notifications = client.notifications();
         while let Ok(n) = notifications.recv().await {
             if let RelayPoolNotification::Event { event, .. } = n {
-                if let Ok(e) = Election::parse_event(&event) {
+                if let Kind::GiftWrap = event.kind {
+                    // Validate event signature
+                    if event.verify().is_err() {
+                        log::warn!("Invalid event signature: {}", event.id);
+                        continue;
+                    }
+                    let event = match nip59::extract_rumor(&my_keys, &event).await {
+                        Ok(u) => u,
+                        Err(_) => {
+                            log::warn!("Error unwrapping gift");
+                            continue;
+                        }
+                    };
+                    log::info!("Received event: {:#?}", event);
+                    continue;
+                } else if let Ok(e) = Election::parse_event(&event) {
                     let mut lock = elections_clone.lock().unwrap();
                     if !lock.iter().any(|x| x.id == e.id) {
                         lock.push(e);
                         lock.sort_by_key(|e| Reverse(e.start_time));
                     }
+                } else {
+                    continue;
                 }
             }
         }
@@ -255,7 +290,29 @@ async fn main() -> Result<(), anyhow::Error> {
                         }
                         KeyCode::Enter => {
                             if active_area == 0 {
-                                // Paso a candidates
+                                // Obtain token for the selected election.
+                                // Create random nonce and hash it.
+                                let nonce: BigUint = OsRng.gen_biguint(128);
+                                let h_n_bytes = Sha256::digest(nonce.to_bytes_be());
+                                // Coding to Base64.
+                                let h_n_b64 = general_purpose::STANDARD.encode(&h_n_bytes);
+                                if let Some(e) = elections.lock().unwrap().get(selected_election_idx) {
+                                    let content = format!("{}:{}", h_n_b64, e.id);
+                                    log::info!("Token request content: {}", content);
+                                    let my_keys = Keys::parse(&settings.secret_key)?;
+                                    // Creates a "rumor" with the hash of the nonce.
+                                    let rumor: UnsignedEvent = EventBuilder::text_note(content).build(my_keys.public_key());
+
+                                    // Wraps the rumor in a Gift Wrap.
+                                    let gift_wrap: Event = EventBuilder::gift_wrap(&my_keys, &ec_pubkey, rumor, None).await?;
+
+                                    // Send the Gift Wrap
+                                    cloned_client.send_event(&gift_wrap).await?;
+
+                                    log::info!("Token request sent: {}", gift_wrap.id);
+                                    // Wait for the Gift Wrap to be unwrapped.
+                                }
+
                                 active_area = 1;
                                 selected_candidate_idx = 0;
                             }

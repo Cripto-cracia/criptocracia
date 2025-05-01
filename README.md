@@ -68,8 +68,7 @@ Registered users with a Nostr key pair (public and private). The public key (vot
 - [x] EC: async waiting for events and handle logs
 - [x] Voter: List elections on voter UI
 - [x] Voter: User select election and get list of candidates
-- [ ] EC blind sign the voting token and send it back to the voter
+- [x] EC blind sign the voting token and send it back to the voter
 - [ ] Voter cast vote
 - [ ] EC receive vote
 - [ ] EC Count votes and publish to Nostr
-- [ ] voter: Add command to list active elections and candidates
