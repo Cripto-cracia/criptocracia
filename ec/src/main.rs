@@ -1,15 +1,15 @@
-mod types;
 mod election;
+mod types;
 
-use base64::{engine::general_purpose, Engine as _};
 use anyhow::Result;
-use types::{Candidate, Voter};
+use base64::{Engine as _, engine::general_purpose};
+use chrono::Local;
+use fern::Dispatch;
 use nostr_sdk::prelude::*;
+use num_bigint_dig::BigUint;
 use std::fs;
 use tokio::sync::mpsc;
-use fern::Dispatch;
-use chrono::Local;
-use num_bigint_dig::BigUint;
+use types::{Candidate, Voter};
 
 // Demo keys for the electoral commission:
 // Hex public key:   0000001ace57d0da17fc18562f4658ac6d093b2cc8bb7bd44853d0c196e24a9c
@@ -40,28 +40,31 @@ async fn main() -> Result<()> {
     setup_logger(log::LevelFilter::Info).expect("Can't initialize logger");
     let keys = Keys::parse("e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c")?;
 
-    println!("🔑 Electoral Commission Public key: {}", keys.public_key().to_bech32()?);
+    println!(
+        "🔑 Electoral Commission Public key: {}",
+        keys.public_key().to_bech32()?
+    );
 
     // Build the signing client
-    let client = Client::builder()
-        .signer(keys.clone())
-        .build();
+    let client = Client::builder().signer(keys.clone()).build();
 
     // Add the Mostro relay and connect
     client.add_relay("wss://relay.mostro.network").await?;
     client.connect().await;
 
     let candidates: Vec<Candidate> = vec![
-        Candidate::new(1, "Burro 🐴"),
-        Candidate::new(2, "Oveja 🐑"),
-        Candidate::new(3, "Perezoso 🦥"),
+        Candidate::new(1, "Vaca lola"),
+        Candidate::new(2, "Cerdo loco"),
+        Candidate::new(3, "Rata sabrosa"),
+        Candidate::new(4, "Perro rabioso"),
     ];
     let now = chrono::Utc::now();
     let start_time = now.timestamp() as u64;
     // Duration of the election
-    let duration = 1 * 60 * 60; // 1 hour in seconds
+    let duration = 60 * 60; // 1 hour in seconds
     let election_name = "Libertad 2024".to_string();
-    let mut election = election::Election::new(election_name, candidates.clone(), start_time, duration);
+    let mut election =
+        election::Election::new(election_name, candidates.clone(), start_time, duration);
     // Timestamp for the expiration of the election
     let future = now + chrono::Duration::days(5);
     let secs = future.timestamp() as u64;
@@ -71,7 +74,8 @@ async fn main() -> Result<()> {
     let event = EventBuilder::new(Kind::Custom(35_000), election.as_json())
         .tag(Tag::identifier(election.id.to_string()))
         .tag(Tag::expiration(future_ts))
-        .sign(&keys).await?;
+        .sign(&keys)
+        .await?;
 
     // Publish the event to the relay
     client.send_event(&event).await?;

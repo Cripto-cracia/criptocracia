@@ -802,6 +802,7 @@ dependencies = [
  "chrono",
  "fern",
  "log",
+ "nanoid",
  "nostr-sdk",
  "num-bigint-dig",
  "rand 0.8.5",
@@ -810,7 +811,6 @@ dependencies = [
  "serde_json",
  "tokio",
  "tracing-subscriber",
- "uuid",
 ]
 
 [[package]]
@@ -1575,6 +1575,15 @@ dependencies = [
  "log",
  "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "nanoid"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ffa00dec017b5b1a8b7cf5e2c008bfda1aa7e0697ac1508b491fdf2622fb4d8"
+dependencies = [
+ "rand 0.8.5",
 ]
 
 [[package]]
@@ -3220,16 +3229,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
-name = "uuid"
-version = "1.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "458f7a779bf54acc9f347480ac654f68407d3aab21269a6e3c9f922acd9e2da9"
-dependencies = [
- "getrandom 0.3.2",
- "serde",
-]
-
-[[package]]
 name = "valuable"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3261,6 +3260,7 @@ dependencies = [
  "fern",
  "futures",
  "log",
+ "nanoid",
  "nostr-sdk",
  "num-bigint-dig",
  "rand 0.8.5",
@@ -3269,21 +3269,6 @@ dependencies = [
  "serde_json",
  "sha2",
  "sqlx",
- "tokio",
- "uuid",
-]
-
-[[package]]
-name = "voter-cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "base64 0.22.1",
- "clap",
- "nostr-sdk",
- "num-bigint-dig",
- "rand 0.8.5",
- "sha2",
  "tokio",
 ]
 
