@@ -1,36 +1,39 @@
+pub mod election;
 pub mod settings;
 pub mod util;
-pub mod election;
 
+use crate::election::{Election, Status};
 use crate::settings::{Settings, init_settings};
 use crate::util::setup_logger;
-use crate::election::{Election, Status};
 
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
-use std::io::stdout;
-use chrono::{Utc, Duration as ChronoDuration};
-use futures::StreamExt;
+use chrono::{Duration as ChronoDuration, Utc};
 use crossterm::event::{Event as CEvent, EventStream, KeyCode, KeyEvent};
-use crossterm::terminal::{enable_raw_mode, disable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
 use crossterm::execute;
+use crossterm::terminal::{
+    EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
+};
+use futures::StreamExt;
+use nostr_sdk::prelude::RelayPoolNotification;
+use nostr_sdk::prelude::*;
+use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::style::{Style, Modifier, Color};
-use ratatui::widgets::{Tabs, Block, Borders, Table, Row, Cell, Paragraph};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::Terminal;
-use tokio::time::{interval, Duration};
-use nostr_sdk::prelude::*;
-use nostr_sdk::prelude::RelayPoolNotification;
+use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, Tabs};
+use std::cmp::Reverse;
+use std::io::stdout;
+use std::str::FromStr;
 use std::sync::OnceLock;
+use std::sync::{Arc, Mutex};
+use tokio::time::{Duration, interval};
 
 /// Constructs (or copies) the configuration file and loads it.
 static SETTINGS: OnceLock<Settings> = OnceLock::new();
 
 // Official Mostro colors.
-const PRIMARY_COLOR: Color = Color::Rgb(3, 255, 254);    // #03fffe
-const BACKGROUND_COLOR: Color = Color::Rgb(5, 35, 39);   // #052327
+const PRIMARY_COLOR: Color = Color::Rgb(3, 255, 254); // #03fffe
+const BACKGROUND_COLOR: Color = Color::Rgb(5, 35, 39); // #052327
 
 /// Draws the TUI interface with tabs and active content.
 /// The "Elections" tab shows a table of active elections and highlights the selected row.
@@ -39,67 +42,123 @@ fn ui_draw(
     active_area: usize,
     elections: &Arc<Mutex<Vec<Election>>>,
     selected_election_idx: usize,
+    selected_candidate_idx: usize,
 ) {
-    // Create layout: three rows
-    let vertical_chunks = Layout::new(
+    let chunks = Layout::new(
         Direction::Vertical,
-        [Constraint::Percentage(30), Constraint::Percentage(40), Constraint::Percentage(30)]
+        [30, 40, 30].map(Constraint::Percentage),
     )
     .split(f.area());
 
-    let header_cells = ["Id", "Name", "Status", "Starts"]
-        .iter()
-        .map(|h| Cell::from(*h))
-        .collect::<Vec<Cell>>();
-    let header = Row::new(header_cells)
-        .style(Style::default().add_modifier(Modifier::BOLD));
+    // === AREA 0: Elections ===
+    let header = Row::new(
+        ["Id", "Name", "Status", "Starts"]
+            .iter()
+            .map(|h| Cell::from(*h))
+            .collect::<Vec<_>>(),
+    )
+    .style(Style::default().add_modifier(Modifier::BOLD));
 
     let elections_lock = elections.lock().unwrap();
-    let rows: Vec<Row> = elections_lock.iter().enumerate().map(|(i, election)| {
-        let row = Row::new(vec![
-            Cell::from(election.id.to_string()),
-            Cell::from(election.name.clone()),
-            Cell::from(match election.status {
+    let mut rows = Vec::with_capacity(elections_lock.len());
+    for (i, e) in elections_lock.iter().enumerate() {
+        let mut row = Row::new(vec![
+            Cell::from(e.id.to_string()),
+            Cell::from(e.name.clone()),
+            Cell::from(match e.status {
                 Status::Open => "Open",
                 Status::InProgress => "In Progress",
                 Status::Finished => "Finished",
                 Status::Canceled => "Canceled",
             }),
-            Cell::from(chrono::DateTime::from_timestamp(election.start_time as i64, 0)
-                .map_or_else(|| "Invalid Time".to_string(), |dt| dt.format("%Y-%m-%d %H:%M").to_string())),
+            Cell::from(
+                chrono::DateTime::from_timestamp(e.start_time as i64, 0)
+                    .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
+                    .unwrap_or_else(|| "Invalid".into()),
+            ),
         ]);
-        if i == selected_election_idx {
-            // Highlight the selected row.
-            row.style(Style::default().bg(PRIMARY_COLOR).fg(Color::Black))
-        } else {
-            row
+        if active_area == 0 && i == selected_election_idx {
+            row = row.style(Style::default().bg(PRIMARY_COLOR).fg(Color::Black));
         }
-    }).collect();
+        rows.push(row);
+    }
 
-    let elections_table = Table::new(
+    let mut block_e = Block::default()
+        .title("Elections")
+        .borders(Borders::ALL)
+        .border_type(ratatui::widgets::BorderType::Rounded)
+        .style(Style::default().bg(BACKGROUND_COLOR));
+    if active_area == 0 {
+        block_e = block_e
+            .title_style(Style::default().bg(PRIMARY_COLOR).fg(Color::Black))
+            .border_style(Style::default().bg(PRIMARY_COLOR).fg(Color::Black));
+    }
+
+    let table_e = Table::new(
         rows,
         &[
-            Constraint::Length(36),
-            Constraint::Min(16),
-            Constraint::Max(10),
-            Constraint::Max(18),
-        ]
+            Constraint::Length(5),
+            Constraint::Min(10),
+            Constraint::Length(12),
+            Constraint::Length(18),
+        ],
     )
     .header(header)
-    .block(Block::default().title("Elections").borders(Borders::ALL).style(Style::default().bg(BACKGROUND_COLOR)));
-    f.render_widget(elections_table, vertical_chunks[0]);
+    .block(block_e);
+    f.render_widget(table_e, chunks[0]);
 
-    f.render_widget(
-        Block::default()
-                .title("Candidates")
-                .borders(Borders::ALL)
-                .style(Style::default().bg(BACKGROUND_COLOR)),
-                vertical_chunks[1]);
+    // === AREA 1: Candidates ===
+    // Si se ha seleccionado una elección válida, muestro sus candidatos:
+    let mut cand_rows = Vec::new();
+    if let Some(e) = elections_lock.get(selected_election_idx) {
+        for (i, c) in e.candidates.iter().enumerate() {
+            let mut row = Row::new(vec![
+                Cell::from(c.id.to_string()),
+                Cell::from(c.name.clone()),
+            ]);
+            if active_area == 1 && i == selected_candidate_idx {
+                row = row.style(Style::default().bg(PRIMARY_COLOR).fg(Color::Black));
+            }
+            cand_rows.push(row);
+        }
+    }
 
-    f.render_widget(        Block::default()
-    .title("Ballot")
-    .borders(Borders::ALL)
-    .style(Style::default().bg(BACKGROUND_COLOR)), vertical_chunks[2]);
+    let mut block_c = Block::default()
+        .title("Candidates")
+        .borders(Borders::ALL)
+        .border_type(ratatui::widgets::BorderType::Rounded)
+        .style(Style::default().bg(BACKGROUND_COLOR));
+    if active_area == 1 {
+        block_c = block_c
+            .title_style(Style::default().bg(PRIMARY_COLOR).fg(Color::Black))
+            .border_style(Style::default().bg(PRIMARY_COLOR).fg(Color::Black));
+    }
+
+    let table_c = Table::new(cand_rows, &[Constraint::Length(5), Constraint::Min(10)])
+        .header(
+            Row::new(
+                ["Id", "Name"]
+                    .iter()
+                    .map(|h| Cell::from(*h))
+                    .collect::<Vec<_>>(),
+            )
+            .style(Style::default().add_modifier(Modifier::BOLD)),
+        )
+        .block(block_c);
+    f.render_widget(table_c, chunks[1]);
+
+    // === AREA 2: Ballot ===
+    let mut block_b = Block::default()
+        .title("Ballot")
+        .borders(Borders::ALL)
+        .border_type(ratatui::widgets::BorderType::Rounded)
+        .style(Style::default().bg(BACKGROUND_COLOR));
+    if active_area == 2 {
+        block_b = block_b
+            .title_style(Style::default().bg(PRIMARY_COLOR).fg(Color::Black))
+            .border_style(Style::default().bg(PRIMARY_COLOR).fg(Color::Black));
+    }
+    f.render_widget(block_b, chunks[2]);
 }
 
 #[tokio::main]
@@ -118,6 +177,9 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Shared state: elections are stored in memory.
     let elections: Arc<Mutex<Vec<Election>>> = Arc::new(Mutex::new(Vec::new()));
+    let mut active_area = 0; // 0 = Elections, 1 = Candidates, 2 = Ballot
+    let mut selected_election_idx = 0;
+    let mut selected_candidate_idx = 0;
 
     // Configure Nostr client.
     let my_keys = Keys::parse(&settings.secret_key)?;
@@ -130,38 +192,30 @@ async fn main() -> Result<(), anyhow::Error> {
     let ec_pubkey = PublicKey::from_str(settings.ec_public_key.as_str())
         .map_err(|e| anyhow::anyhow!("Invalid EC pubkey: {}", e))?;
 
-    // Calculate timestamp for events in the last 7 days.
+    // Calculate timestamp for events in the last 2 day.
     let since_time = Utc::now()
-        .checked_sub_signed(ChronoDuration::days(7))
+        .checked_sub_signed(ChronoDuration::days(2))
         .ok_or_else(|| anyhow::anyhow!("Failed to compute time"))?
         .timestamp() as u64;
     let timestamp = Timestamp::from(since_time);
 
     // Build the filter for NIP-69 (orders) events from Mostro.
-    let filter = Filter::new()
-        .author(ec_pubkey)
-        .limit(20)
-        .since(timestamp);
+    let filter = Filter::new().author(ec_pubkey).limit(20).since(timestamp);
 
     // Subscribe to the filter.
     client.subscribe(filter, None).await?;
 
     // Asynchronous task to handle incoming notifications.
     let elections_clone = Arc::clone(&elections);
-    let mut notifications = client.notifications();
     tokio::spawn(async move {
-        while let Ok(notification) = notifications.recv().await {
-            if let RelayPoolNotification::Event { event, .. } = notification {
-                match Election::parse_event(&event) {
-                    Ok(election) => {
-                        let mut elections_lock = elections_clone.lock().unwrap();
-                                // Only add if not already in the list
-                        if !elections_lock.iter().any(|e| e.id == election.id) {
-                            elections_lock.push(election);
-                        }
-                    }
-                    Err(err) => {
-                        log::error!("Failed to parse election: {}", err);
+        let mut notifications = client.notifications();
+        while let Ok(n) = notifications.recv().await {
+            if let RelayPoolNotification::Event { event, .. } = n {
+                if let Ok(e) = Election::parse_event(&event) {
+                    let mut lock = elections_clone.lock().unwrap();
+                    if !lock.iter().any(|x| x.id == e.id) {
+                        lock.push(e);
+                        lock.sort_by_key(|e| Reverse(e.start_time));
                     }
                 }
             }
@@ -170,47 +224,43 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Event handling: keyboard input and periodic UI refresh.
     let mut events = EventStream::new();
-    let mut refresh_interval = interval(Duration::from_millis(500));
-    let mut active_area: usize = 0;
-    // Selected election index
-    let mut selected_election_idx: usize = 0;
+    let mut refresh_interval = interval(Duration::from_millis(200));
 
     loop {
         tokio::select! {
             maybe_event = events.next() => {
-                if let Some(Ok(event)) = maybe_event {
-                    if let CEvent::Key(KeyEvent { code, .. }) = event {
-                        match code {
-                            KeyCode::Left => {
-                                if active_area > 0 {
-                                    active_area -= 1;
-                                }
+                if let Some(Ok(CEvent::Key(KeyEvent { code, .. }))) = maybe_event {
+                    match code {
+                        KeyCode::Char('q') | KeyCode::Esc => break,
+                        KeyCode::Up => {
+                            if active_area == 0 {
+                                if selected_election_idx > 0 { selected_election_idx -= 1; }
+                            } else if active_area == 1 {
+                                if selected_candidate_idx > 0 { selected_candidate_idx -= 1; }
                             }
-                            KeyCode::Right => {
-                                if active_area < 3 {
-                                    active_area += 1;
-                                }
-                            }
-                            KeyCode::Up => {
-                                if active_area == 0 {
-                                    let orders_len = elections.lock().unwrap().len();
-                                    if orders_len > 0 && selected_election_idx > 0 {
-                                        selected_election_idx -= 1;
-                                    }
-                                }
-                            }
-                            KeyCode::Down => {
-                                if active_area == 0 {
-                                    let orders_len = elections.lock().unwrap().len();
-                                    if orders_len > 0 && selected_election_idx < orders_len.saturating_sub(1) {
-                                        selected_election_idx += 1;
-                                    }
-                                }
-                            }
-
-                            KeyCode::Char('q') | KeyCode::Esc => break,
-                            _ => {}
                         }
+                        KeyCode::Down => {
+                            if active_area == 0 {
+                                let len = elections.lock().unwrap().len();
+                                if selected_election_idx + 1 < len {
+                                    selected_election_idx += 1;
+                                }
+                            } else if active_area == 1 {
+                                if let Some(e) = elections.lock().unwrap().get(selected_election_idx) {
+                                    if selected_candidate_idx + 1 < e.candidates.len() {
+                                        selected_candidate_idx += 1;
+                                    }
+                                }
+                            }
+                        }
+                        KeyCode::Enter => {
+                            if active_area == 0 {
+                                // Paso a candidates
+                                active_area = 1;
+                                selected_candidate_idx = 0;
+                            }
+                        }
+                        _ => {}
                     }
                 }
             },
@@ -219,7 +269,15 @@ async fn main() -> Result<(), anyhow::Error> {
             }
         }
 
-        terminal.draw(|f| ui_draw(f, active_area, &elections, selected_election_idx))?;
+        terminal.draw(|f| {
+            ui_draw(
+                f,
+                active_area,
+                &elections,
+                selected_election_idx,
+                selected_candidate_idx,
+            )
+        })?;
     }
 
     // Restore terminal to its original state.

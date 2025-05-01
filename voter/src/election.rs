@@ -23,7 +23,7 @@ impl Candidate {
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Election {
-    pub id: uuid::Uuid,
+    pub id: String,
     pub name: String,
     pub candidates: Vec<Candidate>,
     pub start_time: u64,
@@ -32,7 +32,13 @@ pub struct Election {
 }
 
 impl Election {
-    pub fn new(id: uuid::Uuid, name: String, candidates: Vec<Candidate>, start_time: u64, duration: u64) -> Self {
+    pub fn new(
+        id: String,
+        name: String,
+        candidates: Vec<Candidate>,
+        start_time: u64,
+        duration: u64,
+    ) -> Self {
         let end_time = start_time + duration;
         Self {
             id,
