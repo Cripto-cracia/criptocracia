@@ -40,6 +40,11 @@ impl Election {
         duration: u64,
     ) -> Self {
         let end_time = start_time + duration;
+        // Validate that ID follows expected format (4-character hex string)
+        debug_assert!(
+            id.len() == 4 && id.chars().all(|c| c.is_ascii_hexdigit()),
+            "Election ID should be a 4-character hex string"
+        );
         Self {
             id,
             name,
