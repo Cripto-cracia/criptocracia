@@ -122,7 +122,16 @@ async fn main() -> Result<()> {
                     }
                 };
                 let voter = event.sender;
-                let (recv_b64, election_code) = event.rumor.content.split_once(':').unwrap();
+                let (recv_b64, election_code) = match event.rumor.content.split_once(':') {
+                    Some(t) => t,
+                    None => {
+                        log::warn!(
+                            "Malformed rumor content (missing ':'): {}",
+                            event.rumor.content
+                        );
+                        continue;
+                    }
+                };
                 let decoded_bytes = match general_purpose::STANDARD.decode(recv_b64) {
                     Ok(bytes) => bytes,
                     Err(e) => {
@@ -152,12 +161,18 @@ async fn main() -> Result<()> {
                     EventBuilder::text_note(content).build(keys.public_key());
 
                 // Wraps the rumor in a Gift Wrap.
-                let gift_wrap: Event = EventBuilder::gift_wrap(&keys, &voter, rumor, None)
-                    .await
-                    .unwrap();
+                let gift_wrap = match EventBuilder::gift_wrap(&keys, &voter, rumor, None).await {
+                    Ok(ev) => ev,
+                    Err(e) => {
+                        log::warn!("Unable to build GiftWrap for {}: {}", voter, e);
+                        continue;
+                    }
+                };
 
                 // Send the Gift Wrap
-                client.send_event(&gift_wrap).await.unwrap();
+                if let Err(e) = client.send_event(&gift_wrap).await {
+                    log::warn!("Failed to send GiftWrap to {}: {}", voter, e);
+                }
 
                 log::info!("Token request sent to: {}", voter);
                 let _ = tx.send(event).await;

@@ -72,4 +72,3 @@ Registered users with a Nostr key pair (public and private). The public key (vot
 - [ ] Voter cast vote
 - [ ] EC receive vote
 - [ ] EC Count votes and publish to Nostr
-- [ ] voter: Add command to list active elections and candidates

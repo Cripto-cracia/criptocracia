@@ -293,9 +293,9 @@ async fn main() -> Result<(), anyhow::Error> {
                                 // Obtain token for the selected election.
                                 // Create random nonce and hash it.
                                 let nonce: BigUint = OsRng.gen_biguint(128);
-                                let h_n_bytes = &Sha256::digest(nonce.to_bytes_be());
+                                let h_n_bytes = Sha256::digest(nonce.to_bytes_be());
                                 // Coding to Base64.
-                                let h_n_b64 = general_purpose::STANDARD.encode(h_n_bytes);
+                                let h_n_b64 = general_purpose::STANDARD.encode(&h_n_bytes);
                                 if let Some(e) = elections.lock().unwrap().get(selected_election_idx) {
                                     let content = format!("{}:{}", h_n_b64, e.id);
                                     log::info!("Token request content: {}", content);
