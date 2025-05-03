@@ -41,8 +41,8 @@ const BACKGROUND_COLOR: Color = Color::Rgb(5, 35, 39); // #052327
 
 #[derive(Default)]
 struct App {
-    h_n: Option<BigUint>,
-    sig: Option<BigUint>,
+    h_n: Option<String>,
+    sig: Option<String>,
     election_id: Option<String>,
     candidate_id: Option<u8>,
 }
@@ -237,6 +237,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Asynchronous task to handle incoming notifications.
     let elections_clone = Arc::clone(&elections);
+    let app_clone = Arc::clone(&app);
     tokio::spawn(async move {
         let mut notifications = client.notifications();
         while let Ok(n) = notifications.recv().await {
@@ -258,18 +259,14 @@ async fn main() -> Result<(), anyhow::Error> {
                     let message = Message::from_json(&event.rumor.content).unwrap();
                     match message.kind {
                         1 => {
-                            log::info!("Token request response {}", message.content);
-                            let decoded_bytes =
-                                match general_purpose::STANDARD.decode(message.content) {
-                                    Ok(bytes) => bytes,
-                                    Err(e) => {
-                                        log::warn!("Error decoding content: {}", e);
-                                        continue;
-                                    }
-                                };
-                            let sig = BigUint::from_bytes_be(&decoded_bytes);
+                            let mut app_lock = app_clone.lock().unwrap();
+                            let sig = message.content.clone();
+                            log::info!("Blind signature stored: {:?}", sig);
+                            app_lock.sig = Some(sig);
                         }
-                        2 => log::info!("Voter response {}", message.content),
+                        2 => {
+                            log::info!("Voter response {}", message.content);
+                        }
                         _ => log::warn!("Unknown response {}", message.content),
                     }
 
@@ -326,9 +323,9 @@ async fn main() -> Result<(), anyhow::Error> {
                                 let nonce: BigUint = OsRng.gen_biguint(128);
                                 let h_n_bytes = Sha256::digest(nonce.to_bytes_be());
                                 let h_n = BigUint::from_bytes_be(&h_n_bytes);
-                                app_lock.h_n = Some(h_n.clone());
                                 // Coding to Base64.
                                 let h_n_b64 = general_purpose::STANDARD.encode(&h_n_bytes);
+                                app_lock.h_n = Some(h_n_b64.clone());
                                 let election_id = {
                                     let elections_lock = elections.lock().unwrap();
                                     elections_lock.get(selected_election_idx).map(|e| e.id.clone())
@@ -373,22 +370,22 @@ async fn main() -> Result<(), anyhow::Error> {
 
                                 if let Some((c, election_id)) = selected_candidate {
                                     log::info!("Selected candidate: {:#?}", c);
-                                    let vote = format!("{}:{}", c.id, c.name);
+                                    // h_n:sig:candidate_id
+                                    let vote = format!("{}:{}:{}", app_lock.h_n.as_ref().unwrap(), app_lock.sig.as_ref().unwrap(), c.id);
                                     let message = Message::new(
                                         election_id,
                                         2,
                                         vote,
                                     );
-                                    // TODO: the vote should be sent with the token
                                     let message_json = serde_json::to_string(&message)?;
                                     log::info!("Vote to be sent: {}", message_json);
                                     // We generate a random key to keep the vote secret
-                                    let my_keys = Keys::generate();
+                                    let random_keys = Keys::generate();
                                     // Creates a "rumor" with the hash of the nonce.
-                                    let rumor: UnsignedEvent = EventBuilder::text_note(message_json).build(my_keys.public_key());
+                                    let rumor: UnsignedEvent = EventBuilder::text_note(message_json).build(random_keys.public_key());
 
                                     // Wraps the rumor in a Gift Wrap.
-                                    let gift_wrap: Event = EventBuilder::gift_wrap(&my_keys, &ec_pubkey, rumor, None).await?;
+                                    let gift_wrap: Event = EventBuilder::gift_wrap(&random_keys, &ec_pubkey, rumor, None).await?;
 
                                     // Send the Gift Wrap
                                     cloned_client.send_event(&gift_wrap).await?;
