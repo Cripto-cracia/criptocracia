@@ -39,6 +39,7 @@ fn setup_logger(level: log::LevelFilter) -> Result<(), fern::InitError> {
 async fn main() -> Result<()> {
     // Initialize logger
     setup_logger(log::LevelFilter::Info).expect("Can't initialize logger");
+    log::info!("Criptocracia started");
     let keys = Keys::parse("e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c")?;
 
     println!(
@@ -194,7 +195,7 @@ async fn main() -> Result<()> {
     loop {
         // Check for new orders without blocking
         while let Ok(event) = rx.try_recv() {
-            log::info!("New event rx: {:#?}", event);
+            // log::info!("New event rx: {:#?}", event);
         }
     }
 }
