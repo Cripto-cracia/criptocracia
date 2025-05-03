@@ -39,15 +39,30 @@ static SETTINGS: OnceLock<Settings> = OnceLock::new();
 const PRIMARY_COLOR: Color = Color::Rgb(3, 255, 254); // #03fffe
 const BACKGROUND_COLOR: Color = Color::Rgb(5, 35, 39); // #052327
 
+#[derive(Default)]
+struct App {
+    h_n: Option<BigUint>,
+    sig: Option<BigUint>,
+    election_id: Option<String>,
+    candidate_id: Option<u8>,
+}
+
 /// Draws the TUI interface with tabs and active content.
 /// The "Elections" tab shows a table of active elections and highlights the selected row.
 fn ui_draw(
     f: &mut ratatui::Frame,
     active_area: usize,
     elections: &Arc<Mutex<Vec<Election>>>,
+    app: &Arc<Mutex<App>>,
     selected_election_idx: usize,
     selected_candidate_idx: usize,
 ) {
+    let app = app.lock().unwrap();
+    let ballot_text = if let (Some(eid), Some(cid)) = (&app.election_id, app.candidate_id) {
+        format!("Election: {}, Candidate: {}", eid, cid)
+    } else {
+        "No vote yet".into()
+    };
     let chunks = Layout::new(
         Direction::Vertical,
         [30, 40, 30].map(Constraint::Percentage),
@@ -162,18 +177,14 @@ fn ui_draw(
             .title_style(Style::default().bg(PRIMARY_COLOR).fg(Color::Black))
             .border_style(Style::default().bg(PRIMARY_COLOR).fg(Color::Black));
     }
-    f.render_widget(block_b, chunks[2]);
+    let paragraph = Paragraph::new(ballot_text).block(block_b);
+    f.render_widget(paragraph, chunks[2]);
 }
-
-// async fn obtain_token(client: Client) -> BigUint {
-
-// }
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     log::info!("Criptocracia started");
     let settings = init_settings();
-    // db::init_db().await?;
     // Initialize logger
     setup_logger(&settings.log_level).expect("Can't initialize logger");
     // Set the terminal in raw mode and switch to the alternate screen.
@@ -185,6 +196,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Shared state: elections are stored in memory.
     let elections: Arc<Mutex<Vec<Election>>> = Arc::new(Mutex::new(Vec::new()));
+    let app = Arc::new(Mutex::new(App::default()));
     let mut active_area = 0; // 0 = Elections, 1 = Candidates, 2 = Ballot
     let mut selected_election_idx = 0;
     let mut selected_candidate_idx = 0;
@@ -245,7 +257,18 @@ async fn main() -> Result<(), anyhow::Error> {
                     log::info!("Received event: {:#?}", event);
                     let message = Message::from_json(&event.rumor.content).unwrap();
                     match message.kind {
-                        1 => log::info!("Token request response {}", message.content),
+                        1 => {
+                            log::info!("Token request response {}", message.content);
+                            let decoded_bytes =
+                                match general_purpose::STANDARD.decode(message.content) {
+                                    Ok(bytes) => bytes,
+                                    Err(e) => {
+                                        log::warn!("Error decoding content: {}", e);
+                                        continue;
+                                    }
+                                };
+                            let sig = BigUint::from_bytes_be(&decoded_bytes);
+                        }
                         2 => log::info!("Voter response {}", message.content),
                         _ => log::warn!("Unknown response {}", message.content),
                     }
@@ -296,17 +319,21 @@ async fn main() -> Result<(), anyhow::Error> {
                             }
                         }
                         KeyCode::Enter => {
+                            let mut app_lock = app.lock().unwrap();
                             if active_area == 0 {
                                 // Obtain token for the selected election.
                                 // Create random nonce and hash it.
                                 let nonce: BigUint = OsRng.gen_biguint(128);
                                 let h_n_bytes = Sha256::digest(nonce.to_bytes_be());
+                                let h_n = BigUint::from_bytes_be(&h_n_bytes);
+                                app_lock.h_n = Some(h_n.clone());
                                 // Coding to Base64.
                                 let h_n_b64 = general_purpose::STANDARD.encode(&h_n_bytes);
                                 let election_id = {
                                     let elections_lock = elections.lock().unwrap();
                                     elections_lock.get(selected_election_idx).map(|e| e.id.clone())
                                 };
+                                app_lock.election_id = election_id.clone();
 
                                 if let Some(election_id) = election_id {
                                     let message = Message::new(
@@ -342,13 +369,15 @@ async fn main() -> Result<(), anyhow::Error> {
                                         (candidate, election_id)
                                     })
                                 };
+                                app_lock.candidate_id = selected_candidate.as_ref().map(|(c, _)| c.id);
 
                                 if let Some((c, election_id)) = selected_candidate {
                                     log::info!("Selected candidate: {:#?}", c);
+                                    let vote = format!("{}:{}", c.id, c.name);
                                     let message = Message::new(
                                         election_id,
                                         2,
-                                        c.id.to_string(),
+                                        vote,
                                     );
                                     // TODO: the vote should be sent with the token
                                     let message_json = serde_json::to_string(&message)?;
@@ -384,6 +413,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 f,
                 active_area,
                 &elections,
+                &app,
                 selected_election_idx,
                 selected_candidate_idx,
             )
