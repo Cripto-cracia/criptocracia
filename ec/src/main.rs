@@ -37,9 +37,9 @@ fn setup_logger(level: log::LevelFilter) -> Result<(), fern::InitError> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    log::info!("Criptocracia started");
     // Initialize logger
     setup_logger(log::LevelFilter::Info).expect("Can't initialize logger");
+    log::info!("Criptocracia started");
     let keys = Keys::parse("e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c")?;
 
     println!(
