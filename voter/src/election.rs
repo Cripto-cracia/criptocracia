@@ -1,6 +1,7 @@
 use nostr_sdk::{Client, event::Event};
 use num_bigint_dig::{BigUint, RandBigInt};
 use rand::rngs::OsRng;
+use serde::ser;
 use sha2::{Digest, Sha256};
 
 #[derive(Debug, serde::Deserialize)]
@@ -12,7 +13,7 @@ pub enum Status {
     Canceled,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize, Clone)]
 pub struct Candidate {
     pub id: u8,
     pub name: String,
@@ -98,3 +99,25 @@ impl Election {
 //         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
 //     }
 // }
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct Message {
+    pub id: String,
+    /// 1: Token request, 2: Vote
+    pub kind: u8,
+    pub content: String,
+}
+
+impl Message {
+    pub fn new(id: String, kind: u8, content: String) -> Self {
+        Self { id, kind, content }
+    }
+
+    pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
+        serde_json::from_str(json)
+    }
+
+    pub fn as_json(&self) -> String {
+        serde_json::to_string(self).unwrap()
+    }
+}

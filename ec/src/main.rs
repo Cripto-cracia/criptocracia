@@ -10,7 +10,7 @@ use nostr_sdk::prelude::*;
 use num_bigint_dig::BigUint;
 use std::fs;
 use tokio::sync::mpsc;
-use types::{Candidate, Voter};
+use types::{Candidate, Message, Voter};
 
 // Demo keys for the electoral commission:
 // Hex public key:   0000001ace57d0da17fc18562f4658ac6d093b2cc8bb7bd44853d0c196e24a9c
@@ -82,7 +82,7 @@ async fn main() -> Result<()> {
     client.send_event(&event).await?;
 
     println!("🎁 Event with the list of candidates sent!");
-    let file_path = "data/voters_pubkeys.json";
+    let file_path = "voters_pubkeys.json";
     // Read voters json file
     let json_content = fs::read_to_string(file_path)
         .map_err(|e| anyhow::anyhow!("Error reading file {}: {}", file_path, e))?;
@@ -122,59 +122,71 @@ async fn main() -> Result<()> {
                     }
                 };
                 let voter = event.sender;
-                let (recv_b64, election_code) = match event.rumor.content.split_once(':') {
-                    Some(t) => t,
-                    None => {
-                        log::warn!(
-                            "Malformed rumor content (missing ':'): {}",
-                            event.rumor.content
-                        );
-                        continue;
-                    }
-                };
-                let decoded_bytes = match general_purpose::STANDARD.decode(recv_b64) {
-                    Ok(bytes) => bytes,
+                let message = match Message::from_json(&event.rumor.content) {
+                    Ok(m) => m,
                     Err(e) => {
-                        log::warn!("Error decoding content: {}", e);
+                        log::warn!("Error parsing message: {}", e);
                         continue;
                     }
                 };
-                let h_n = BigUint::from_bytes_be(&decoded_bytes);
-                let req = BlindTokenRequest {
-                    voter_pk: voter.to_string(),
-                    blinded_hash: h_n,
-                };
-                // Issue token
-                let blind_sig = match election.issue_token(req) {
-                    Ok(token) => token,
-                    Err(e) => {
-                        log::warn!("Error issuing token: {}", e);
-                        continue;
-                    }
-                };
-                // Encode token to Base64
-                let h_n_b64 = general_purpose::STANDARD.encode(blind_sig.to_bytes_be());
-                let content = format!("{}:{}", h_n_b64, election_code);
-                log::info!("Blind Token content: {}", content);
-                // Creates a "rumor" with the hash of the nonce.
-                let rumor: UnsignedEvent =
-                    EventBuilder::text_note(content).build(keys.public_key());
+                // Check if the message is a token request
+                match message.kind {
+                    1 => {
+                        log::info!("Token request received: {}", message.content);
+                        let decoded_bytes = match general_purpose::STANDARD.decode(message.content)
+                        {
+                            Ok(bytes) => bytes,
+                            Err(e) => {
+                                log::warn!("Error decoding content: {}", e);
+                                continue;
+                            }
+                        };
+                        let h_n = BigUint::from_bytes_be(&decoded_bytes);
+                        let req = BlindTokenRequest {
+                            voter_pk: voter.to_string(),
+                            blinded_hash: h_n,
+                        };
+                        // Issue token
+                        let blind_sig = match election.issue_token(req) {
+                            Ok(token) => token,
+                            Err(e) => {
+                                log::warn!("Error issuing token: {}", e);
+                                continue;
+                            }
+                        };
+                        // Encode token to Base64
+                        let h_n_b64 = general_purpose::STANDARD.encode(blind_sig.to_bytes_be());
+                        let message = Message::new(message.id.clone(), 1, h_n_b64.clone());
+                        log::info!("Blind Token content: {:#?}", message);
+                        // Creates a "rumor" with the hash of the nonce.
+                        let rumor: UnsignedEvent =
+                            EventBuilder::text_note(message.as_json()).build(keys.public_key());
 
-                // Wraps the rumor in a Gift Wrap.
-                let gift_wrap = match EventBuilder::gift_wrap(&keys, &voter, rumor, None).await {
-                    Ok(ev) => ev,
-                    Err(e) => {
-                        log::warn!("Unable to build GiftWrap for {}: {}", voter, e);
+                        // Wraps the rumor in a Gift Wrap.
+                        let gift_wrap =
+                            match EventBuilder::gift_wrap(&keys, &voter, rumor, None).await {
+                                Ok(ev) => ev,
+                                Err(e) => {
+                                    log::warn!("Unable to build GiftWrap for {}: {}", voter, e);
+                                    continue;
+                                }
+                            };
+
+                        // Send the Gift Wrap
+                        if let Err(e) = client.send_event(&gift_wrap).await {
+                            log::warn!("Failed to send GiftWrap to {}: {}", voter, e);
+                        }
+
+                        log::info!("Token request sent to: {}", voter);
+                    }
+                    2 => {
+                        log::info!("Vote received: {}", message.content);
+                    }
+                    _ => {
+                        log::warn!("Unknown message kind: {}", message.kind);
                         continue;
                     }
-                };
-
-                // Send the Gift Wrap
-                if let Err(e) = client.send_event(&gift_wrap).await {
-                    log::warn!("Failed to send GiftWrap to {}: {}", voter, e);
                 }
-
-                log::info!("Token request sent to: {}", voter);
                 let _ = tx.send(event).await;
             }
         }

@@ -2,7 +2,7 @@ pub mod election;
 pub mod settings;
 pub mod util;
 
-use crate::election::{Election, Status};
+use crate::election::{Election, Message, Status};
 use crate::settings::{Settings, init_settings};
 use crate::util::setup_logger;
 
@@ -112,7 +112,7 @@ fn ui_draw(
     f.render_widget(table_e, chunks[0]);
 
     // === AREA 1: Candidates ===
-    // Si se ha seleccionado una elección válida, muestro sus candidatos:
+    // If a valid election is selected, display its candidates:
     let mut cand_rows = Vec::new();
     if let Some(e) = elections_lock.get(selected_election_idx) {
         for (i, c) in e.candidates.iter().enumerate() {
@@ -243,6 +243,13 @@ async fn main() -> Result<(), anyhow::Error> {
                         }
                     };
                     log::info!("Received event: {:#?}", event);
+                    let message = Message::from_json(&event.rumor.content).unwrap();
+                    match message.kind {
+                        1 => log::info!("Token request response {}", message.content),
+                        2 => log::info!("Voter response {}", message.content),
+                        _ => log::warn!("Unknown response {}", message.content),
+                    }
+
                     continue;
                 } else if let Ok(e) = Election::parse_event(&event) {
                     let mut lock = elections_clone.lock().unwrap();
@@ -296,12 +303,22 @@ async fn main() -> Result<(), anyhow::Error> {
                                 let h_n_bytes = Sha256::digest(nonce.to_bytes_be());
                                 // Coding to Base64.
                                 let h_n_b64 = general_purpose::STANDARD.encode(&h_n_bytes);
-                                if let Some(e) = elections.lock().unwrap().get(selected_election_idx) {
-                                    let content = format!("{}:{}", h_n_b64, e.id);
-                                    log::info!("Token request content: {}", content);
+                                let election_id = {
+                                    let elections_lock = elections.lock().unwrap();
+                                    elections_lock.get(selected_election_idx).map(|e| e.id.clone())
+                                };
+
+                                if let Some(election_id) = election_id {
+                                    let message = Message::new(
+                                        election_id,
+                                        1,
+                                        h_n_b64.clone(),
+                                    );
+                                    let message_json = serde_json::to_string(&message)?;
+                                    log::info!("Token request content: {}", message_json);
                                     let my_keys = Keys::parse(&settings.secret_key)?;
                                     // Creates a "rumor" with the hash of the nonce.
-                                    let rumor: UnsignedEvent = EventBuilder::text_note(content).build(my_keys.public_key());
+                                    let rumor: UnsignedEvent = EventBuilder::text_note(message_json).build(my_keys.public_key());
 
                                     // Wraps the rumor in a Gift Wrap.
                                     let gift_wrap: Event = EventBuilder::gift_wrap(&my_keys, &ec_pubkey, rumor, None).await?;
@@ -309,12 +326,48 @@ async fn main() -> Result<(), anyhow::Error> {
                                     // Send the Gift Wrap
                                     cloned_client.send_event(&gift_wrap).await?;
 
-                                    log::info!("Token request sent: {}", gift_wrap.id);
+                                    log::info!("Token request sent!");
                                     // Wait for the Gift Wrap to be unwrapped.
                                 }
 
                                 active_area = 1;
                                 selected_candidate_idx = 0;
+                            } else if active_area == 1 {
+                                // Log the selected candidate details
+                                let selected_candidate = {
+                                    let elections_lock = elections.lock().unwrap();
+                                    elections_lock.get(selected_election_idx).map(|e| {
+                                        let candidate = e.candidates[selected_candidate_idx].clone();
+                                        let election_id = e.id.clone();
+                                        (candidate, election_id)
+                                    })
+                                };
+
+                                if let Some((c, election_id)) = selected_candidate {
+                                    log::info!("Selected candidate: {:#?}", c);
+                                    let message = Message::new(
+                                        election_id,
+                                        2,
+                                        c.id.to_string(),
+                                    );
+                                    // TODO: the vote should be sent with the token
+                                    let message_json = serde_json::to_string(&message)?;
+                                    log::info!("Vote to be sent: {}", message_json);
+                                    // We generate a random key to keep the vote secret
+                                    let my_keys = Keys::generate();
+                                    // Creates a "rumor" with the hash of the nonce.
+                                    let rumor: UnsignedEvent = EventBuilder::text_note(message_json).build(my_keys.public_key());
+
+                                    // Wraps the rumor in a Gift Wrap.
+                                    let gift_wrap: Event = EventBuilder::gift_wrap(&my_keys, &ec_pubkey, rumor, None).await?;
+
+                                    // Send the Gift Wrap
+                                    cloned_client.send_event(&gift_wrap).await?;
+
+                                    log::info!("Vote sent!");
+                                    // Wait for the Gift Wrap to be unwrapped.
+                                }
+                                // TODO: handle candidate confirmation or switch to Ballot area
                             }
                         }
                         _ => {}
