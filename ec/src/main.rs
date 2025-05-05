@@ -52,10 +52,10 @@ async fn main() -> Result<()> {
     client.connect().await;
 
     let candidates: Vec<Candidate> = vec![
-        Candidate::new(1, "Vaca lola"),
-        Candidate::new(2, "Cerdo loco"),
-        Candidate::new(3, "Rata sabrosa"),
-        Candidate::new(4, "Perro rabioso"),
+        Candidate::new(1, "Donkey 🫏"),
+        Candidate::new(2, "Rat 🐀"),
+        Candidate::new(3, "Sheep 🐑"),
+        Candidate::new(4, "Sloth 🦥"),
     ];
     let now = chrono::Utc::now();
     let start_time = now.timestamp() as u64;
