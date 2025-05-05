@@ -41,7 +41,7 @@ const BACKGROUND_COLOR: Color = Color::Rgb(5, 35, 39); // #052327
 #[derive(Default)]
 struct App {
     h_n: Option<String>,
-    sig: Option<String>,
+    blind_sig: Option<String>,
     election_id: Option<String>,
     candidate_id: Option<u8>,
 }
@@ -259,9 +259,9 @@ async fn main() -> Result<(), anyhow::Error> {
                     match message.kind {
                         1 => {
                             let mut app_lock = app_clone.lock().unwrap();
-                            let sig = message.content.clone();
-                            log::info!("Blind signature stored: {:?}", sig);
-                            app_lock.sig = Some(sig);
+                            let blind_sig = message.content.clone();
+                            log::info!("Blind signature stored: {:?}", blind_sig);
+                            app_lock.blind_sig = Some(blind_sig);
                         }
                         2 => {
                             log::info!("Voter response {}", message.content);
@@ -369,7 +369,7 @@ async fn main() -> Result<(), anyhow::Error> {
                                 if let Some((c, election_id)) = selected_candidate {
                                     log::info!("Selected candidate: {:#?}", c);
                                     // h_n:sig:candidate_id
-                                    let vote = format!("{}:{}:{}", app_lock.h_n.as_ref().unwrap(), app_lock.sig.as_ref().unwrap(), c.id);
+                                    let vote = format!("{}:{}:{}", app_lock.h_n.as_ref().unwrap(), app_lock.blind_sig.as_ref().unwrap(), c.id);
                                     let message = Message::new(
                                         election_id,
                                         2,
