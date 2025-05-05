@@ -178,23 +178,39 @@ async fn main() -> Result<()> {
                         log::info!("Token request sent to: {}", voter);
                     }
                     2 => {
-                        let (h_n, token, vote) =
-                            match message.content.split(':').collect::<Vec<&str>>().as_slice() {
-                                [h_n, token, vote] => {
-                                    let h_n = BigUint::from_bytes_be(
-                                        &general_purpose::STANDARD.decode(h_n).unwrap(),
-                                    );
-                                    let token = BigUint::from_bytes_be(
-                                        &general_purpose::STANDARD.decode(token).unwrap(),
-                                    );
-                                    let vote = vote.parse::<u8>().unwrap();
-                                    (h_n, token, vote)
-                                }
-                                _ => {
-                                    log::warn!("Invalid vote format: {}", message.content);
-                                    continue;
-                                }
-                            };
+                        // Split the incoming vote message into parts.
+                        let parts: Vec<&str> = message.content.split(':').collect();
+                        if parts.len() != 3 {
+                            log::warn!("Invalid vote format: {}", message.content);
+                            continue;
+                        }
+
+                        // Decode h_n from Base64
+                        let h_n = match general_purpose::STANDARD.decode(parts[0]) {
+                            Ok(bytes) => BigUint::from_bytes_be(&bytes),
+                            Err(e) => {
+                                log::warn!("Failed to decode h_n: {}", e);
+                                continue;
+                            }
+                        };
+
+                        // Decode token from Base64
+                        let token = match general_purpose::STANDARD.decode(parts[1]) {
+                            Ok(bytes) => BigUint::from_bytes_be(&bytes),
+                            Err(e) => {
+                                log::warn!("Failed to decode token: {}", e);
+                                continue;
+                            }
+                        };
+
+                        // Parse vote as an integer
+                        let vote = match parts[2].parse::<u8>() {
+                            Ok(v) => v,
+                            Err(e) => {
+                                log::warn!("Failed to parse vote: {}", e);
+                                continue;
+                            }
+                        };
 
                         if let Err(e) = election.receive_vote(h_n, token, vote) {
                             log::warn!("Error receiving vote: {}", e);
