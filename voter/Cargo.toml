@@ -17,7 +17,6 @@ num-bigint-dig = { workspace = true }
 nanoid = { workspace = true }
 serde_json = { workspace = true }
 
-clap = { version = "4.5.37", features = ["derive"] }
 rand = "0.8"
 sha2 = "0.10"
 ratatui = "0.29.0"

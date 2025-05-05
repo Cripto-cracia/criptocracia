@@ -7,6 +7,7 @@ use rsa::{
     BigUint, RsaPrivateKey, RsaPublicKey,
     traits::{PrivateKeyParts, PublicKeyParts},
 };
+use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
 use crate::Candidate;
@@ -17,6 +18,8 @@ pub struct BlindTokenRequest {
     pub blinded_hash: BigUint,
 }
 
+#[allow(dead_code)]
+#[derive(Debug, PartialEq)]
 pub enum Status {
     Open,
     InProgress,
@@ -25,6 +28,7 @@ pub enum Status {
 }
 
 /// Commissioner of Elections (CE) manages the election process.
+#[derive(Debug)]
 pub struct Election {
     pub id: String,
     pub name: String,
@@ -67,14 +71,8 @@ impl Election {
         }
     }
 
-    /// Returns the EC's RSA public key.
-    pub fn public_rsa(&self) -> &RsaPublicKey {
-        &self.pub_rsa
-    }
-
-    /// Registers the pubkey nostr of an authorized voter.
     pub fn register_voter(&mut self, voter_pk: &str) {
-        println!("🔑 Registering voter: {voter_pk}");
+        println!("🔑 Registering voter: {}", voter_pk);
         // 1) Check that the pubkey is not already registered.
         if self.authorized_voters.contains(voter_pk) {
             println!("⚠️ Voter already registered");
@@ -100,7 +98,6 @@ impl Election {
     /// Receives a vote along with (h_n, token) and verifies validity.
     pub fn receive_vote(
         &mut self,
-        voter_name: String,
         h_n: BigUint,
         token: BigUint,
         encrypted_vote: u8,
@@ -115,7 +112,8 @@ impl Election {
         }
         // 3) Store encrypted vote (for demo purposes it will be the candidate's number).
         self.votes.push(encrypted_vote);
-        println!("✅ Vote received from {voter_name}");
+        println!("✅ Vote received");
+
         Ok(())
     }
 
@@ -124,25 +122,13 @@ impl Election {
         let mut counts = HashMap::new();
         for &v in &self.votes {
             if let Some(c) = self.candidates.iter().find(|c| c.id == v) {
-                *counts.entry(c.clone()).or_insert(0) += 1;
+                *counts.entry(*c).or_insert(0) += 1;
             }
         }
         counts
     }
 
-    /// Print the final results to the console.
-    pub fn print_results(&self) {
-        println!("\n──────── Final results ────────");
-        let tally = self.tally();
-        for (cand, count) in &tally {
-            println!("{}: {} vote(s)", cand.name, count);
-        }
-        if let Some((winner, _)) = tally.iter().max_by_key(|(_, c)| *c) {
-            println!("🏆 Winner: {}", winner.name);
-        }
-    }
-
-    pub fn as_json(&self) -> String {
+    pub fn as_json(&self) -> Value {
         let election_data = serde_json::json!({
             "id": self.id.to_string(),
             "name": self.name,
@@ -156,6 +142,11 @@ impl Election {
                 Status::Canceled => "canceled",
             },
         });
-        election_data.to_string()
+        election_data
+    }
+
+    pub fn as_json_string(&self) -> String {
+        let election_data = self.as_json();
+        serde_json::to_string(&election_data).unwrap()
     }
 }

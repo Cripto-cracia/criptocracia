@@ -42,10 +42,7 @@ async fn main() -> Result<()> {
     log::info!("Criptocracia started");
     let keys = Keys::parse("e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c")?;
 
-    println!(
-        "🔑 Electoral Commission Public key: {}",
-        keys.public_key().to_bech32()?
-    );
+    println!("🔑 Electoral Commission Public key: {}", keys.public_key());
 
     // Build the signing client
     let client = Client::builder().signer(keys.clone()).build();
@@ -55,10 +52,10 @@ async fn main() -> Result<()> {
     client.connect().await;
 
     let candidates: Vec<Candidate> = vec![
-        Candidate::new(1, "Vaca lola"),
-        Candidate::new(2, "Cerdo loco"),
-        Candidate::new(3, "Rata sabrosa"),
-        Candidate::new(4, "Perro rabioso"),
+        Candidate::new(1, "Donkey 🫏"),
+        Candidate::new(2, "Rat 🐀"),
+        Candidate::new(3, "Sheep 🐑"),
+        Candidate::new(4, "Sloth 🦥"),
     ];
     let now = chrono::Utc::now();
     let start_time = now.timestamp() as u64;
@@ -71,9 +68,9 @@ async fn main() -> Result<()> {
     let future = now + chrono::Duration::days(5);
     let secs = future.timestamp() as u64;
     let future_ts = Timestamp::from(secs);
-    println!("🗳️ Election: {}", election.as_json());
+    println!("🗳️ Election: {:#?}", election.as_json());
     // We publish the candidates list in a custom event with kind 35_000
-    let event = EventBuilder::new(Kind::Custom(35_000), election.as_json())
+    let event = EventBuilder::new(Kind::Custom(35_000), election.as_json_string())
         .tag(Tag::identifier(election.id.to_string()))
         .tag(Tag::expiration(future_ts))
         .sign(&keys)
@@ -82,7 +79,7 @@ async fn main() -> Result<()> {
     // Publish the event to the relay
     client.send_event(&event).await?;
 
-    println!("🎁 Event with the list of candidates sent!");
+    println!("🎁 Event with the list of candidates broadcast to Nostr relays!");
     let file_path = "voters_pubkeys.json";
     // Read voters json file
     let json_content = fs::read_to_string(file_path)
@@ -181,7 +178,73 @@ async fn main() -> Result<()> {
                         log::info!("Token request sent to: {}", voter);
                     }
                     2 => {
-                        log::info!("Vote received: {}", message.content);
+                        // Split the incoming vote message into parts.
+                        let parts: Vec<&str> = message.content.split(':').collect();
+                        if parts.len() != 3 {
+                            log::warn!("Invalid vote format: {}", message.content);
+                            continue;
+                        }
+
+                        // Decode h_n from Base64
+                        let h_n = match general_purpose::STANDARD.decode(parts[0]) {
+                            Ok(bytes) => BigUint::from_bytes_be(&bytes),
+                            Err(e) => {
+                                log::warn!("Failed to decode h_n: {}", e);
+                                continue;
+                            }
+                        };
+
+                        // Decode token from Base64
+                        let token = match general_purpose::STANDARD.decode(parts[1]) {
+                            Ok(bytes) => BigUint::from_bytes_be(&bytes),
+                            Err(e) => {
+                                log::warn!("Failed to decode token: {}", e);
+                                continue;
+                            }
+                        };
+
+                        // Parse vote as an integer
+                        let vote = match parts[2].parse::<u8>() {
+                            Ok(v) => v,
+                            Err(e) => {
+                                log::warn!("Failed to parse vote: {}", e);
+                                continue;
+                            }
+                        };
+
+                        if let Err(e) = election.receive_vote(h_n, token, vote) {
+                            log::warn!("Error receiving vote: {}", e);
+                            continue;
+                        }
+                        // Tally the votes
+                        let tally = election.tally();
+                        let mut results = String::new();
+                        for (cand, count) in &tally {
+                            results.push_str(&format!("{}: {} vote(s)\n", cand.name, count));
+                        }
+
+                        let now = chrono::Utc::now();
+                        // Timestamp for the expiration of the election
+                        let future = now + chrono::Duration::days(5);
+                        let secs = future.timestamp() as u64;
+                        let future_ts = Timestamp::from(secs);
+                        println!("🗳️ Election's result: \n\n{}", results);
+                        // We publish the results in a custom event with kind 35_001
+                        match EventBuilder::new(Kind::Custom(35_001), results)
+                            .tag(Tag::identifier(election.id.to_string()))
+                            .tag(Tag::expiration(future_ts))
+                            .sign(&keys)
+                            .await
+                        {
+                            Ok(event) => {
+                                // Publish the event to the relay
+                                match client.send_event(&event).await {
+                                    Ok(_) => log::info!("Election results published successfully"),
+                                    Err(e) => log::error!("Failed to publish results: {}", e),
+                                }
+                            }
+                            Err(e) => log::error!("Failed to sign results event: {}", e),
+                        };
                     }
                     _ => {
                         log::warn!("Unknown message kind: {}", message.kind);
@@ -194,7 +257,7 @@ async fn main() -> Result<()> {
     });
     loop {
         // Check for new orders without blocking
-        while let Ok(event) = rx.try_recv() {
+        while let Ok(_event) = rx.try_recv() {
             // log::info!("New event rx: {:#?}", event);
         }
     }
