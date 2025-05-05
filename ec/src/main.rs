@@ -214,16 +214,20 @@ async fn main() -> Result<()> {
                         let future_ts = Timestamp::from(secs);
                         println!("🗳️ Election's result: \n\n{}", results);
                         // We publish the results in a custom event with kind 35_001
-                        let event = EventBuilder::new(Kind::Custom(35_001), results)
+                        match EventBuilder::new(Kind::Custom(35_001), results)
                             .tag(Tag::identifier(election.id.to_string()))
                             .tag(Tag::expiration(future_ts))
                             .sign(&keys)
-                            .await
-                            .unwrap();
-
-                        // Publish the event to the relay
-                        client.send_event(&event).await.unwrap();
-                    }
+                            .await {
+                            Ok(event) => {
+                                // Publish the event to the relay
+                                match client.send_event(&event).await {
+                                    Ok(_) => log::info!("Election results published successfully"),
+                                    Err(e) => log::error!("Failed to publish results: {}", e),
+                                }
+                            },
+                            Err(e) => log::error!("Failed to sign results event: {}", e),
+                        };
                     _ => {
                         log::warn!("Unknown message kind: {}", message.kind);
                         continue;
