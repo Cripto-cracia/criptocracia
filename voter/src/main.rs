@@ -22,8 +22,7 @@ use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Color, Modifier, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, Tabs};
+use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table};
 use sha2::{Digest, Sha256};
 use std::cmp::Reverse;
 use std::io::stdout;
@@ -198,8 +197,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let elections: Arc<Mutex<Vec<Election>>> = Arc::new(Mutex::new(Vec::new()));
     let app = Arc::new(Mutex::new(App::default()));
     let mut active_area = 0; // 0 = Elections, 1 = Candidates, 2 = Ballot
-    let mut selected_election_idx = 0;
-    let mut selected_candidate_idx = 0;
+    let mut selected_election_idx: usize = 0;
+    let mut selected_candidate_idx: usize = 0;
 
     // Configure Nostr client.
     let my_keys = Keys::parse(&settings.secret_key)?;
@@ -296,9 +295,9 @@ async fn main() -> Result<(), anyhow::Error> {
                         KeyCode::Char('q') | KeyCode::Esc => break,
                         KeyCode::Up => {
                             if active_area == 0 {
-                                if selected_election_idx > 0 { selected_election_idx -= 1; }
-                            } else if active_area == 1 {
-                                if selected_candidate_idx > 0 { selected_candidate_idx -= 1; }
+                                selected_election_idx = selected_election_idx.saturating_sub(1);
+                            } else if active_area == 1 && selected_candidate_idx > 0 {
+                                selected_candidate_idx = selected_candidate_idx.saturating_sub(1);
                             }
                         }
                         KeyCode::Down => {
@@ -322,9 +321,8 @@ async fn main() -> Result<(), anyhow::Error> {
                                 // Create random nonce and hash it.
                                 let nonce: BigUint = OsRng.gen_biguint(128);
                                 let h_n_bytes = Sha256::digest(nonce.to_bytes_be());
-                                let h_n = BigUint::from_bytes_be(&h_n_bytes);
                                 // Coding to Base64.
-                                let h_n_b64 = general_purpose::STANDARD.encode(&h_n_bytes);
+                                let h_n_b64 = general_purpose::STANDARD.encode(h_n_bytes);
                                 app_lock.h_n = Some(h_n_b64.clone());
                                 let election_id = {
                                     let elections_lock = elections.lock().unwrap();

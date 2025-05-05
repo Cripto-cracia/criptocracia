@@ -42,10 +42,7 @@ async fn main() -> Result<()> {
     log::info!("Criptocracia started");
     let keys = Keys::parse("e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c")?;
 
-    println!(
-        "🔑 Electoral Commission Public key: {}",
-        keys.public_key().to_bech32()?
-    );
+    println!("🔑 Electoral Commission Public key: {}", keys.public_key());
 
     // Build the signing client
     let client = Client::builder().signer(keys.clone()).build();
@@ -71,9 +68,9 @@ async fn main() -> Result<()> {
     let future = now + chrono::Duration::days(5);
     let secs = future.timestamp() as u64;
     let future_ts = Timestamp::from(secs);
-    println!("🗳️ Election: {}", election.as_json());
+    println!("🗳️ Election: {:#?}", election.as_json());
     // We publish the candidates list in a custom event with kind 35_000
-    let event = EventBuilder::new(Kind::Custom(35_000), election.as_json())
+    let event = EventBuilder::new(Kind::Custom(35_000), election.as_json_string())
         .tag(Tag::identifier(election.id.to_string()))
         .tag(Tag::expiration(future_ts))
         .sign(&keys)
@@ -82,7 +79,7 @@ async fn main() -> Result<()> {
     // Publish the event to the relay
     client.send_event(&event).await?;
 
-    println!("🎁 Event with the list of candidates sent!");
+    println!("🎁 Event with the list of candidates broadcast to Nostr relays!");
     let file_path = "voters_pubkeys.json";
     // Read voters json file
     let json_content = fs::read_to_string(file_path)
@@ -181,7 +178,51 @@ async fn main() -> Result<()> {
                         log::info!("Token request sent to: {}", voter);
                     }
                     2 => {
-                        log::info!("Vote received: {}", message.content);
+                        let (h_n, token, vote) =
+                            match message.content.split(':').collect::<Vec<&str>>().as_slice() {
+                                [h_n, token, vote] => {
+                                    let h_n = BigUint::from_bytes_be(
+                                        &general_purpose::STANDARD.decode(h_n).unwrap(),
+                                    );
+                                    let token = BigUint::from_bytes_be(
+                                        &general_purpose::STANDARD.decode(token).unwrap(),
+                                    );
+                                    let vote = vote.parse::<u8>().unwrap();
+                                    (h_n, token, vote)
+                                }
+                                _ => {
+                                    log::warn!("Invalid vote format: {}", message.content);
+                                    continue;
+                                }
+                            };
+
+                        if let Err(e) = election.receive_vote(h_n, token, vote) {
+                            log::warn!("Error receiving vote: {}", e);
+                            continue;
+                        }
+                        // Tally the votes
+                        let tally = election.tally();
+                        let mut results = String::new();
+                        for (cand, count) in &tally {
+                            results.push_str(&format!("{}: {} vote(s)\n", cand.name, count));
+                        }
+
+                        let now = chrono::Utc::now();
+                        // Timestamp for the expiration of the election
+                        let future = now + chrono::Duration::days(5);
+                        let secs = future.timestamp() as u64;
+                        let future_ts = Timestamp::from(secs);
+                        println!("🗳️ Election's result: \n\n{}", results);
+                        // We publish the results in a custom event with kind 35_001
+                        let event = EventBuilder::new(Kind::Custom(35_001), results)
+                            .tag(Tag::identifier(election.id.to_string()))
+                            .tag(Tag::expiration(future_ts))
+                            .sign(&keys)
+                            .await
+                            .unwrap();
+
+                        // Publish the event to the relay
+                        client.send_event(&event).await.unwrap();
                     }
                     _ => {
                         log::warn!("Unknown message kind: {}", message.kind);
@@ -194,7 +235,7 @@ async fn main() -> Result<()> {
     });
     loop {
         // Check for new orders without blocking
-        while let Ok(event) = rx.try_recv() {
+        while let Ok(_event) = rx.try_recv() {
             // log::info!("New event rx: {:#?}", event);
         }
     }

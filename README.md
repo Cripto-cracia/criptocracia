@@ -70,5 +70,5 @@ Registered users with a Nostr key pair (public and private). The public key (vot
 - [x] Voter: User select election and get list of candidates
 - [x] EC blind sign the voting token and send it back to the voter
 - [x] Voter cast vote
-- [ ] EC receive vote
-- [ ] EC Count votes and publish to Nostr
+- [x] EC receive vote
+- [x] EC Count votes and publish to Nostr
