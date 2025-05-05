@@ -16,7 +16,7 @@ Derived from the initial consultation, the key security properties for this syst
 - Voter Authentication: Only eligible voters, identified by their Nostr public keys, are eligible to participate.
 - Vote Uniqueness: Each voter may cast only one valid vote.
 - Verifiability/Auditability: The electoral process and results must be publicly verifiable without compromising the identity of the voter, minimizing the trust required in the central tallying authority. (This central tallying authority may be comprised of a committee composed of a representative from each voting option.)
-- Nostr's Role: Nostr is proposed as the underlying communication layer. Its decentralized, public/private event-based features can be used for both vote transmission and the implementation of a public bulletin board. Features such as NIP-59 Gift Wrap 2 are used to encrypt data during transmission, protecting the confidentiality of the vote in transit.
+- Nostr's Role: Nostr is proposed as the underlying communication layer. Its decentralized, public/private event-based features can be used for both vote transmission and the implementation of a public bulletin board. Features such as NIP-59 Gift Wrap are used to encrypt data during transmission, protecting the confidentiality of the vote in transit.
 
 ## Voters
 Registered users with a Nostr key pair (public and private). The public key (voter_pk) identifies the voter to the Electoral Commission.
@@ -29,20 +29,20 @@ Registered users with a Nostr key pair (public and private). The public key (vot
 - Performs the final count (the counting mechanism itself is outside the scope of this blind signature scheme).
 
 ## Nostr: Communication protocol used for:
-- Requesting blind signatures (via encrypted direct messages).
-- Casting encrypted votes (using NIP-59 Gift Wrap).
+- Requesting blind signatures (via NIP-59 Gift Wrap).
+- Casting encrypted votes (via NIP-59 Gift Wrap).
 
 ## Voting Protocol:
 ### Blind Signature Request:
-- A registered voter generates a unique identifier for their vote (nonce n) and calculates its hash (h_n).
-- The voter "blinds" the hash h_n using a random blinding factor r and the EC's blind signing public key (pk_bs_ce).
-- The voter sends the blinded hash (blinded_h_n) to the EC via an encrypted Nostr direct message, authenticating themselves with their voter_pk.
+- A registered voter generates a unique identifier for their vote (`nonce`) and calculates its hash (`h_n`).
+- The voter send the hash h_n and the EC's blind signing it back to the voter.
+- The voter sends the blinded hash (`blinded_h_n`) to the EC via an encrypted Nostr Gift Wrap, authenticating the voter_pk.
 
 ### Blind Signature Issuance by the EC:
 - The EC receives the request, verifies that voter_pk is registered and has not previously requested a signature for this election.
-- If valid, the EC signs the blinded hash (blinded_h_n) with their blind signing private key (sk_bs_ce), obtaining blind_sig.
+- If valid, the EC signs the blinded hash (blinded_h_n) with their blind signing private key, obtaining blind_sig.
 - The EC internally marks that voter_pk has already received their authorization (to prevent multiple requests).
-- The EC sends blind_sig back to the voter via encrypted Nostr DM.
+- The EC sends blind_sig back to the voter via encrypted Nostr Gift Wrap.
 ### Token Collection and Voting:
 - The voter receives the blind_sig and unblinds it using the factor r, obtaining the actual token signature on h_n. They verify that the token is valid with pk_bs_ce. The pair (h_n, token) is now their anonymous voting credential.
 - The voter prepares their actual vote (vote_content) and encrypts it using NIP-59 Gift Wrap, addressed to the EC's Nostr public key.
