@@ -234,16 +234,18 @@ async fn main() -> Result<()> {
                             .tag(Tag::identifier(election.id.to_string()))
                             .tag(Tag::expiration(future_ts))
                             .sign(&keys)
-                            .await {
+                            .await
+                        {
                             Ok(event) => {
                                 // Publish the event to the relay
                                 match client.send_event(&event).await {
                                     Ok(_) => log::info!("Election results published successfully"),
                                     Err(e) => log::error!("Failed to publish results: {}", e),
                                 }
-                            },
+                            }
                             Err(e) => log::error!("Failed to sign results event: {}", e),
                         };
+                    }
                     _ => {
                         log::warn!("Unknown message kind: {}", message.kind);
                         continue;

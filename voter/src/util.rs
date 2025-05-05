@@ -1,5 +1,5 @@
-use fern::Dispatch;
 use chrono::Local;
+use fern::Dispatch;
 
 /// Initialize logger function
 pub fn setup_logger(level: &str) -> Result<(), fern::InitError> {
