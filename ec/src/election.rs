@@ -1,12 +1,10 @@
 /*!  counting.rs — Electoral Commission logic
 Manages voter registration, issuance of blind tokens, vote reception, and counting. */
 
+use blind_rsa_signatures::{BlindSignature, BlindedMessage, Options, SecretKey as RSASecretKey};
 use nanoid::nanoid;
-use rand::rngs::OsRng;
-use rsa::{
-    BigUint, RsaPrivateKey, RsaPublicKey,
-    traits::{PrivateKeyParts, PublicKeyParts},
-};
+use num_bigint_dig::BigUint;
+use rand::thread_rng;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
@@ -15,7 +13,7 @@ use crate::Candidate;
 /// Blind signature petition made by a voter.
 pub struct BlindTokenRequest {
     pub voter_pk: String,
-    pub blinded_hash: BigUint,
+    pub blinded_h_n: BlindedMessage,
 }
 
 #[allow(dead_code)]
@@ -32,8 +30,6 @@ pub enum Status {
 pub struct Election {
     pub id: String,
     pub name: String,
-    pub priv_rsa: RsaPrivateKey,
-    pub pub_rsa: RsaPublicKey,
     pub authorized_voters: HashSet<String>, // allowed pubkeys
     pub used_tokens: HashSet<BigUint>,      // h_n already used
     pub votes: Vec<u8>,                     // votes received
@@ -46,9 +42,6 @@ pub struct Election {
 impl Election {
     /// Create a new EC with a 2048-bit RSA key.
     pub fn new(name: String, candidates: Vec<Candidate>, start_time: u64, duration: u64) -> Self {
-        let mut rng = OsRng;
-        let priv_rsa = RsaPrivateKey::new(&mut rng, 2048).expect("Failed to generate RSA key");
-        let pub_rsa = RsaPublicKey::from(&priv_rsa);
         let end_time = start_time + duration;
         let id = nanoid!(
             4,
@@ -59,8 +52,6 @@ impl Election {
         Self {
             id,
             name,
-            priv_rsa,
-            pub_rsa,
             authorized_voters: HashSet::new(),
             used_tokens: HashSet::new(),
             votes: vec![],
@@ -83,35 +74,34 @@ impl Election {
     }
 
     /// Blindly signs the hash submitted by a voter.
-    pub fn issue_token(&mut self, req: BlindTokenRequest) -> Result<BigUint, &'static str> {
-        // 1) Check that the voter is authorized and has not previously requested it.
+    pub fn issue_token(
+        &mut self,
+        req: BlindTokenRequest,
+        secret_key: RSASecretKey,
+    ) -> Result<BlindSignature, &'static str> {
+        let options = Options::default();
+        let rng = &mut thread_rng();
+        // Check that the voter is authorized and has not previously requested it.
         if !self.authorized_voters.remove(&req.voter_pk) {
-            return Err("unauthorized voter or signature already issued");
+            return Err("Unauthorized voter or nonce hash already issued");
         }
-        // 2) Sign: s' = blinded^d  (mód n)
-        let blind_sig = req
-            .blinded_hash
-            .modpow(self.priv_rsa.d(), self.priv_rsa.n());
+        // 2) Sign it
+        let blind_sig = secret_key
+            .blind_sign(rng, &req.blinded_h_n, &options)
+            .map_err(|_| "signing error")?;
+        log::info!("Blind signature issued: {:?}", blind_sig);
         Ok(blind_sig)
     }
 
     /// Receives a vote along with (h_n, token) and verifies validity.
-    pub fn receive_vote(
-        &mut self,
-        h_n: BigUint,
-        token: BigUint,
-        encrypted_vote: u8,
-    ) -> Result<(), &'static str> {
-        // 1) Validates signature: token^e ≟ h_n  (mód n)
-        if token.modpow(self.pub_rsa.e(), self.pub_rsa.n()) != h_n {
-            return Err("Invalid token");
-        }
-        // 2) Avoid double voting.
-        if !self.used_tokens.insert(h_n) {
+    pub fn receive_vote(&mut self, h_n: BigUint, vote: u8) -> Result<(), &'static str> {
+        // Avoid double voting.
+        if !self.used_tokens.insert(h_n.clone()) {
+            log::warn!("Duplicate token detected for h_n={}", h_n);
             return Err("duplicated vote");
         }
-        // 3) Store encrypted vote (for demo purposes it will be the candidate's number).
-        self.votes.push(encrypted_vote);
+        // Store vote (for demo purposes it will be the candidate's number).
+        self.votes.push(vote);
         println!("✅ Vote received");
 
         Ok(())

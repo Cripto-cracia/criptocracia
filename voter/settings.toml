@@ -1,6 +1,6 @@
 # Voter private key
 secret_key = "30df83c45dee3b379c91be29cbbf6ecdbcfd8e9d96979e98b9e8162505d2047a"
-# Electoral Commission public key
+# Electoral Commission Nostr public key
 ec_public_key = "0000001ace57d0da17fc18562f4658ac6d093b2cc8bb7bd44853d0c196e24a9c"
 # Relays to connect to
 relays = ["wss://relay.mostro.network"]

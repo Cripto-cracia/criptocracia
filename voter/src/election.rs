@@ -75,12 +75,12 @@ pub struct Message {
     pub id: String,
     /// 1: Token request, 2: Vote
     pub kind: u8,
-    pub content: String,
+    pub payload: String,
 }
 
 impl Message {
-    pub fn new(id: String, kind: u8, content: String) -> Self {
-        Self { id, kind, content }
+    pub fn new(id: String, kind: u8, payload: String) -> Self {
+        Self { id, kind, payload }
     }
 
     pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {

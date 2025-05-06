@@ -21,3 +21,5 @@ base64 = "0.22.1"
 num-bigint-dig   = { version = "0.8", features = ["rand"] }
 nanoid = "0.4.0"
 serde_json = "1.0.140"
+rsa = "0.9.8"
+blind-rsa-signatures = "0.15.2"
