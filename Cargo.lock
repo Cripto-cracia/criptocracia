@@ -3284,7 +3284,6 @@ dependencies = [
  "num-bigint-dig",
  "rand 0.8.5",
  "ratatui",
- "rsa 0.9.8",
  "serde",
  "serde_json",
  "sha2",
