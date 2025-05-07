@@ -90,6 +90,100 @@ Go to the directory of voter and ec for specific instructions.
 
 ---
 
+## Nostr
+
+As mentioned above, both the voter and the EC communicate by sending Gift Wrap events, but there are other messages that the EC publishes.
+
+### Election
+
+An addressable event kind `35000` with the election information in a serialized json object in the content field of the event, here an example of the json object:
+
+```json
+{
+  "id": "f5f7",
+  "name": "Libertad 2024",
+  "start_time": 1746611643,
+  "status": "open",
+  "candidates": [
+    {
+      "id": 1,
+      "name": "Donkey 🫏"
+    },
+    {
+      "id": 2,
+      "name": "Rat 🐀"
+    },
+    {
+      "id": 3,
+      "name": "Sheep 🐑"
+    },
+    {
+      "id": 4,
+      "name": "Sloth 🦥"
+    }
+  ],
+  "end_time": 1746615243
+}
+```
+
+The event would look like this:
+
+```json
+[
+  "EVENT",
+  "7157aabf-389e-4d3e-9656-4d818159dff2",
+  {
+    "tags": [
+      [
+        "d",
+        "f5f7"
+      ],
+      [
+        "expiration",
+        "1747043643"
+      ]
+    ],
+    "content": "{\"candidates\":[{\"id\":1,\"name\":\"Donkey 🫏\"},{\"id\":2,\"name\":\"Rat 🐀\"},{\"id\":3,\"name\":\"Sheep 🐑\"},{\"id\":4,\"name\":\"Sloth 🦥\"}],\"end_time\":1746615243,\"id\":\"f5f7\",\"name\":\"Libertad 2024\",\"start_time\":1746611643,\"status\":\"open\"}",
+    "sig": "8b5bc04003c1d20ba98d33b2fd98a536d538d58afa1c9cfa81d3b693a3a20a764b51258e28335b10945439f7a09fca1d4d2ac40135a506e1bb4a8116259c46ab",
+    "id": "557d833876048e50068dfb06b82344a058d8104f08578e8060623ec8004c29ac",
+    "pubkey": "0000001ace57d0da17fc18562f4658ac6d093b2cc8bb7bd44853d0c196e24a9c",
+    "created_at": 1746611643,
+    "kind": 35000
+  }
+]
+```
+
+### Current status of the election
+
+After each vote received the EC will publish another addressable event with kind `35001` with the current status of the election as a serialized json array in the content field, the event would like this:
+
+```json
+[
+  "EVENT",
+  "7157aabf-389e-4d3e-9656-4d818159dff2",
+  {
+    "tags": [
+      [
+        "d",
+        "f5f7"
+      ],
+      [
+        "expiration",
+        "1747043706"
+      ]
+    ],
+    "content": "[[\"Sheep 🐑\",2],[\"Donkey 🫏\",1]]",
+    "sig": "3eb717f176be137d7adc0f9e6d52556c38d988bce59c2f683cbdc6f796df3a3e6d31aecf2866fa2df5d58ce7a287236f83e2c368a89015f7b8f4c5eea21e134d",
+    "id": "7ae5c519f9e8886b70d0cef6155a69f3194e7b89cb88e589ed2012853915581e",
+    "pubkey": "0000001ace57d0da17fc18562f4658ac6d093b2cc8bb7bd44853d0c196e24a9c",
+    "created_at": 1746611706,
+    "kind": 35001
+  }
+]
+```
+
+---
+
 ## License
 
 This project is licensed under MIT. See [LICENSE](LICENSE) for details.
@@ -112,3 +206,4 @@ This project is licensed under MIT. See [LICENSE](LICENSE) for details.
 - [x] Voter cast vote
 - [x] EC receive vote
 - [x] EC Count votes and publish to Nostr
+- [ ] EC should close the election after the `end_time`
