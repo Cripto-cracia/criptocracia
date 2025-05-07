@@ -103,52 +103,9 @@ Artifacts will be in `target/release/ec` and `target/release/voter`.
 
 ---
 
-## Configuration
+## Configuration and Usage
 
-Voter binary use a TOML settings file (auto-initialized on first run) stored in `~/.voter/settings.toml`. Edit it to specify:
-
-```toml
-# ~/.criptocracia/settings.toml
-secret_key = "<your_nostr_nsec_key>"
-ec_public_key = "<EC_nostr_npub_key>"
-log_level = "info"
-relays = ["wss://relay.mostro.network"]
-```
-
-* `secret_key`: Nostr private key for signing Gift Wrap messages.
-* `ec_public_key`: EC’s Nostr public key (used by `voter` to encrypt requests).
-
----
-
-## Usage
-
-### Running the Electoral Commission (EC)
-
-1. Start the EC service:
-
-   ```sh
-   target/release/ec
-   ```
-2. The EC will publish the candidate list to Nostr and wait for blind signature requests.
-3. Voter requests will be logged and served automatically.
-4. Once votes arrive, EC will verify, tally, and publish results.
-
-### Running the Voter Client
-
-1. List available elections:
-
-   ```sh
-   target/release/voter
-   ```
-2. Select an election and request a token (navigate UI with arrow keys and press Enter).
-3. After receiving the blinded signature, choose your candidate and press Enter to cast your vote.
-4. Vote confirmation appears in the UI, and the EC processes it asynchronously.
-
----
-
-## Logging and Debugging
-
-Logs are written to `app.log` in the current working directory. Set `log_level` in settings to `debug` for verbose output.
+Go to the directory of voter and ec for specific instructions.
 
 ---
 
@@ -164,6 +121,7 @@ Logs are written to `app.log` in the current working directory. Set `log_level` 
 
 This project is licensed under MIT. See [LICENSE](LICENSE) for details.
 
+---
 
 ## Todo list
 - [x] EC publish list of candidates as a Nostr event

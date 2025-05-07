@@ -122,7 +122,7 @@ async fn main() -> Result<()> {
     let future = now + chrono::Duration::days(5);
     let secs = future.timestamp() as u64;
     let future_ts = Timestamp::from(secs);
-    println!("🗳️ Election: {:#?}", election.as_json());
+
     // We publish the candidates list in a custom event with kind 35_000
     let event = EventBuilder::new(Kind::Custom(35_000), election.as_json_string())
         .tag(Tag::identifier(election.id.to_string()))
