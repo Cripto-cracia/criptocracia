@@ -76,33 +76,6 @@ Shared workspace dependencies include:
 
 ---
 
-## Prerequisites
-
-* Rust toolchain (>= 1.86.0)
-* Nostr relay endpoint (e.g., `wss://relay.mostro.network`)
-
-Ensure you have Git and Cargo installed. Clone the repository:
-
-```sh
-git clone https://github.com/grunch/criptocracia.git
-cd criptocracia
-```
-
----
-
-## Building the Project
-
-From the workspace root:
-
-```sh
-# Build both binaries in release mode
-cargo build --release
-```
-
-Artifacts will be in `target/release/ec` and `target/release/voter`.
-
----
-
 ## Configuration and Usage
 
 Go to the directory of voter and ec for specific instructions.

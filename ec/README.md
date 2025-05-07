@@ -4,9 +4,40 @@
 
 *Disclaimer: The author is NOT a cryptographer and this work has not been reviewed. This means that there is very likely a fatal flaw somewhere. Criptocracia is still experimental and not production-ready.*
 
+---
+
+## Prerequisites
+
+* Rust toolchain (>= 1.86.0)
+* Nostr relay endpoint (e.g., `wss://relay.mostro.network`)
+
+Ensure you have Git and Cargo installed. Clone the repository:
+
+```sh
+git clone https://github.com/grunch/criptocracia.git
+cd criptocracia/ec
+```
+
+---
+
+## Building the Project
+
+From the workspace root:
+
+```sh
+# Build both binaries in release mode
+cargo build --release
+```
+
+The binary will be in `target/release/ec`.
+
+---
+
 ## Configuration
 
 Manually add voters pubkeys in the file `voters_pubkeys.json`.
+
+---
 
 ## Usage
 

@@ -22,6 +22,33 @@ relays = ["wss://relay.mostro.network"]
 
 ---
 
+## Prerequisites
+
+* Rust toolchain (>= 1.86.0)
+* Nostr relay endpoint (e.g., `wss://relay.mostro.network`)
+
+Ensure you have Git and Cargo installed. Clone the repository:
+
+```sh
+git clone https://github.com/grunch/criptocracia.git
+cd criptocracia/voter
+```
+
+---
+
+## Building the Project
+
+From the workspace root:
+
+```sh
+# Build both binaries in release mode
+cargo build --release
+```
+
+The binary will be in `target/release/voter`.
+
+---
+
 ## Usage
 
 1. List available elections:
