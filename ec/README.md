@@ -37,6 +37,21 @@ The binary will be in `target/release/ec`.
 
 Manually add voters pubkeys in the file `voters_pubkeys.json`.
 
+In order to work with blind signatures we need to create a RSA private key
+
+```sh
+# 1) Generate private key (RSA 2048 bits)
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 \
+  -out ec_private.pem
+
+# 2) Extract the public key
+openssl rsa -in ec_private.pem -pubout -out ec_public.pem
+```
+
+Now you can share publicly the public key to all voters, they need to include it in their voter client.
+
+To simplify the testing of this project we have already created a couple of keys and included them in this repository.
+
 ---
 
 ## Usage

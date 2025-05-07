@@ -1,15 +1,13 @@
 mod election;
 mod types;
+mod util;
+
+use crate::util::{load_keys, setup_logger};
 
 use anyhow::Result;
 use base64::{Engine as _, engine::general_purpose};
-use blind_rsa_signatures::{
-    BlindedMessage, MessageRandomizer, Options, PublicKey as RSAPublicKey,
-    SecretKey as RSASecretKey, Signature as RSASignature,
-};
-use chrono::Local;
+use blind_rsa_signatures::{BlindedMessage, MessageRandomizer, Options, Signature as RSASignature};
 use election::BlindTokenRequest;
-use fern::Dispatch;
 use nostr_sdk::prelude::*;
 use num_bigint_dig::BigUint;
 use std::fs;
@@ -22,70 +20,6 @@ use types::{Candidate, Message, Voter};
 // Npub public key:  npub1qqqqqxkw2lgd59lurptz73jc43ksjwevezahh4zg20gvr9hzf2wq8nzqyl
 // Nsec private key: nsec1u0enx5rjskqv65wm3aqy34s5jyx53fwq6lc676q3aq7q0lyxtfwqph3yue
 
-// Demo RSA keys for the electoral commission:
-const EC_PRIVATE_PEM: &str = r#"-----BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDLOuMoqXPwmnIq
-uqcI2vaf+JfBKAcCes3JnA4npRbhpy3EOcjd3LB46pe0ZnIiDj494SYOtNjmw/qk
-3anmpUzpcaa3sMJ9K0mBoKkHQP8Fl39qv+yH1qP0BMtB7bj9QNfB4ZODNZWyTLy4
-JE4NzNrGEM9e/BEBAgK5k07c7FDmyzu5zVl9INL77znuryTood1udaQDLf42gayV
-laohAf+H20OXzN8ofkA/kxmJt2dr78/bBvPzr/y6r6EG6nHDKamJBfEsHut+N86Q
-tfbZaC6x6i+lsD/sh/cs2d53lS7FfUjG4XMG3DtbVEDLwHUyqUCht/kr57hfMDOX
-j0CpCfqzAgMBAAECggEAF4PNyuOofZtxQE5ui1DCnonmDTxzay8IZp5+6MlqV1u/
-qOfCvSEO7j6+pOoBpL0fKIvHmoYEXtcoRjE7ums/9fbngnOaXV9H1w7e3+7+UwhP
-fuuME7+bIt33Ir6929fH3zAZoGHv2zyTzX6t5Vzhp29Ef0oNMZ+o7w4DXv6c8cc3
-Wpl52suNclz//p7tkGYjtHNGAabSmoFYZhBEjTHclhgPCs3hkgIiSXiT4c28O+hn
-pPjqjY+ALiAQ6TMCuB250kSHKHWLcTEdEqCI4nbtiCe852csBsZeYSiZ3HILZhSd
-5/PLkXLRttC+HmQ946GlrCOhyFrIewvMhMT6QF12MQKBgQDYJ0+njfucgzdLJ9f2
-+TM/JgDmUbn2cJ114G5lvFsosQvSVjXK62QSDBWtjdLMDJkU7CQSg8amhgZPgzBu
-zsGRf6Mi4cb9YrXTqGJ87pPhtbHsp6K0kQtjWpk8Yy0JgDdXR9BwAnrHwnYUeupq
-zmaKUUUzFg9FVktLFtk+/Bj+iQKBgQDwsbDTYYJy8CUzbEyw2C6BTBpRKH7tF32N
-ufViHrAHfQV8tJQP0eQwTr0Uqx5vocGg7OjFVT1OUY0pXYNkHGWZCGUnldcbOCam
-r44zbVEk8YJC0Z9fM5G9U/U/Ost40lrGB0NlwY6d18fTjpIJ/aWM5fW6+pUSDH89
-FeDhdQuAWwKBgAyhz3/lRk0RRgv4WiCu05XfLLJJGGsUjb8zzH/ZkCJCpoQ2UZJ4
-SzLazfGElksieVfFrR3/4X4d2wSOkCgJoTpVkT0aoLxyJlomPws6Dh5kte80pMeU
-qmu2AbqLuTgS7CkHo2DIZFCERs5PmJ+BTHDM6xRfN6k/r8rFnRCXPwaxAoGAfj9F
-l2oS6USqzpEknLGXmvwW5bDO+n8SvO7oFYIxJIxf/2wcKTwXa3sxVBD5UuZOUKFS
-6oZuNJEz8Jl7HFyEscMkg6HlhQJry4xTkwfowu7mOzQGWwIKlHrgLT0ikooLUMlo
-gYwHySTwTDgAw7rGReQsgtmCrUfeyWSbYsZotPcCgYEAmpNvn6N8dApA1Bxo+Phq
-iMyOqgt3twtvMeb+PgttHbN1PAidB7y/tuqHhNSugOSYnejxPL+usZovQOrR4I/2
-eEsAyGyHwxeg5E6IHfia87NPjMzV2dm+k+dzN08Wy3aNwAQTRgngNc8aN+dsmU7Y
-W+aipD7vvxPN16yBxqWo/Ts=
------END PRIVATE KEY-----"#;
-
-const EC_PUBLIC_PEM: &str = r#"-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyzrjKKlz8JpyKrqnCNr2
-n/iXwSgHAnrNyZwOJ6UW4actxDnI3dyweOqXtGZyIg4+PeEmDrTY5sP6pN2p5qVM
-6XGmt7DCfStJgaCpB0D/BZd/ar/sh9aj9ATLQe24/UDXweGTgzWVsky8uCRODcza
-xhDPXvwRAQICuZNO3OxQ5ss7uc1ZfSDS++857q8k6KHdbnWkAy3+NoGslZWqIQH/
-h9tDl8zfKH5AP5MZibdna+/P2wbz86/8uq+hBupxwympiQXxLB7rfjfOkLX22Wgu
-seovpbA/7If3LNned5UuxX1IxuFzBtw7W1RAy8B1MqlAobf5K+e4XzAzl49AqQn6
-swIDAQAB
------END PUBLIC KEY-----"#;
-
-fn load_keys() -> Result<(RSAPublicKey, RSASecretKey)> {
-    let sk = RSASecretKey::from_pem(EC_PRIVATE_PEM)?;
-    let pk = RSAPublicKey::from_pem(EC_PUBLIC_PEM)?;
-
-    Ok((pk, sk))
-}
-
-/// Initialize logger function
-fn setup_logger(level: log::LevelFilter) -> Result<(), fern::InitError> {
-    Dispatch::new()
-        .format(|out, message, record| {
-            out.finish(format_args!(
-                "[{}] [{}] - {}",
-                Local::now().format("%Y-%m-%d %H:%M:%S"),
-                record.level(),
-                message
-            ))
-        })
-        .level(level)
-        .chain(fern::log_file("app.log")?)
-        .apply()?;
-    Ok(())
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
     // Initialize logger
@@ -94,7 +28,7 @@ async fn main() -> Result<()> {
     let keys = Keys::parse("e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c")?;
 
     // 1. Load the keys from PEM files
-    let (pk, sk) = load_keys().expect("Failed to load keys");
+    let (pk, sk) = load_keys("ec_private.pem", "ec_public.pem")?;
 
     println!("🔑 Electoral Commission Public key: {}", keys.public_key());
 
@@ -287,9 +221,13 @@ async fn main() -> Result<()> {
                         // Tally the votes
                         let tally = election.tally();
                         let mut results = String::new();
+                        let mut json_results: Vec<(String, u32)> = Vec::new();
                         for (cand, count) in &tally {
                             results.push_str(&format!("{}: {} vote(s)\n", cand.name, count));
+                            json_results.push((cand.name.to_string().clone(), *count));
                         }
+                        let json_string = serde_json::to_string(&json_results)
+                            .expect("Error al serializar a JSON");
 
                         let now = chrono::Utc::now();
                         // Timestamp for the expiration of the election
@@ -298,7 +236,7 @@ async fn main() -> Result<()> {
                         let future_ts = Timestamp::from(secs);
                         println!("🗳️ Election's result: \n\n{}", results);
                         // We publish the results in a custom event with kind 35_001
-                        match EventBuilder::new(Kind::Custom(35_001), results)
+                        match EventBuilder::new(Kind::Custom(35_001), json_string)
                             .tag(Tag::identifier(election.id.to_string()))
                             .tag(Tag::expiration(future_ts))
                             .sign(&keys)

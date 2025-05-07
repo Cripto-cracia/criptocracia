@@ -9,7 +9,7 @@
 Voter use a TOML settings file (auto-initialized on first run) stored in `~/.voter/settings.toml`. Edit it to specify:
 
 ```toml
-# ~/.criptocracia/settings.toml
+# ~/.voter/settings.toml
 secret_key = "<your_nostr_nsec_key>"
 ec_public_key = "<EC_nostr_npub_key>"
 log_level = "info"
@@ -19,6 +19,10 @@ relays = ["wss://relay.mostro.network"]
 * `secret_key`: Nostr private key for signing Gift Wrap messages.
 * `ec_public_key`: EC’s Nostr public key (used by `voter` to encrypt requests).
 * `relays`: List of Nostr relays
+
+Import the RSA public key from your EC.
+
+To simplify the testing of this project we have already created a couple of keys and included them in this repository.
 
 ---
 

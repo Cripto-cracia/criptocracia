@@ -89,7 +89,7 @@ impl Election {
         let blind_sig = secret_key
             .blind_sign(rng, &req.blinded_h_n, &options)
             .map_err(|_| "signing error")?;
-        log::info!("Blind signature issued: {:?}", blind_sig);
+        log::info!("Blind signature issued");
         Ok(blind_sig)
     }
 
