@@ -206,5 +206,5 @@ This project is licensed under MIT. See [LICENSE](LICENSE) for details.
 - [x] Voter cast vote
 - [x] EC receive vote
 - [x] EC Count votes and publish to Nostr
-- [ ] EC should close the election after the `end_time`
+- [x] EC should change the status election depending `start_time` and `end_time`
 - [ ] voter: Show results in real time
