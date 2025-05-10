@@ -330,10 +330,18 @@ async fn main() -> Result<(), anyhow::Error> {
                     continue;
                 } else if let Ok(e) = Election::parse_event(&event) {
                     let mut lock = elections_clone.lock().unwrap();
-                    if !lock.iter().any(|x| x.id == e.id) {
+
+                    // If we already have the election, update it
+                    if let Some(existing) = lock.iter_mut().find(|x| x.id == e.id) {
+                        // Update the existing election
+                        *existing = e;
+                    } else {
+                        // If is a new election, add it to the list
                         lock.push(e);
-                        lock.sort_by_key(|e| Reverse(e.start_time));
                     }
+
+                    // re-order elections by start time
+                    lock.sort_by_key(|e| Reverse(e.start_time));
                 } else {
                     continue;
                 }

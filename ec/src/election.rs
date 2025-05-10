@@ -17,7 +17,7 @@ pub struct BlindTokenRequest {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Status {
     Open,
     InProgress,
@@ -26,7 +26,7 @@ pub enum Status {
 }
 
 /// Commissioner of Elections (CE) manages the election process.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Election {
     pub id: String,
     pub name: String,
@@ -63,6 +63,10 @@ impl Election {
     }
 
     pub fn register_voter(&mut self, voter_pk: &str) {
+        if self.status != Status::Open {
+            log::warn!("Cannot register voter: election is not open");
+            return;
+        }
         println!("🔑 Registering voter: {}", voter_pk);
         // 1) Check that the pubkey is not already registered.
         if self.authorized_voters.contains(voter_pk) {
@@ -95,6 +99,9 @@ impl Election {
 
     /// Receives a vote along with (h_n, token) and verifies validity.
     pub fn receive_vote(&mut self, h_n: BigUint, vote: u8) -> Result<(), &'static str> {
+        if self.status != Status::InProgress {
+            return Err("Cannot receive vote: election is not in progress");
+        }
         // Avoid double voting.
         if !self.used_tokens.insert(h_n.clone()) {
             log::warn!("Duplicate token detected for h_n={}", h_n);
