@@ -155,7 +155,7 @@ The event would look like this:
 
 ### Current status of the election
 
-After each vote received the EC will publish another addressable event with kind `35001` with the current status of the election as a serialized json array in the content field, the event would like this:
+After each vote is received, the EC will publish another addressable event of kind `35001`. The event’s content field will contain the current status of the election as a serialized JSON array: the first element is the candidate ID, and the second element is the number of votes received. For example, in an election with the same candidates shown above—where **Sloth 🦥** received 21 vote and **Sheep 🐑** received 35 votes—the event would look like this:
 
 ```json
 [
@@ -172,7 +172,7 @@ After each vote received the EC will publish another addressable event with kind
         "1747043706"
       ]
     ],
-    "content": "[[\"Sheep 🐑\",2],[\"Donkey 🫏\",1]]",
+    "content": "[[4,21],[3,35]]",
     "sig": "3eb717f176be137d7adc0f9e6d52556c38d988bce59c2f683cbdc6f796df3a3e6d31aecf2866fa2df5d58ce7a287236f83e2c368a89015f7b8f4c5eea21e134d",
     "id": "7ae5c519f9e8886b70d0cef6155a69f3194e7b89cb88e589ed2012853915581e",
     "pubkey": "0000001ace57d0da17fc18562f4658ac6d093b2cc8bb7bd44853d0c196e24a9c",
