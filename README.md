@@ -4,7 +4,7 @@
 
 *Disclaimer: The author is NOT a cryptographer and this work has not been reviewed. This means that there is very likely a fatal flaw somewhere. Criptocracia is still experimental and not production-ready.*
 
-**Criptocracia** is an experimental, open-source electronic voting system built in Rust. It leverages blind RSA signatures to ensure vote secrecy, voter anonymity and integrity, and uses the Nostr protocol (NIP-59 Gift Wrap) for decentralized, encrypted message transport.
+**Criptocracia** is an experimental, trustless open-source electronic voting system built in Rust. It leverages blind RSA signatures to ensure vote secrecy, voter anonymity and integrity, and uses the Nostr protocol for decentralized, encrypted message transport.
 
 ## Context
 The critical need for secure, transparent, and anonymous electronic‑voting systems is becoming ever more pressing, especially in settings where trust in central authorities is limited—addressing concerns that authoritarian regimes may use electoral systems to stay in power. The historical challenges of electoral fraud underscore the importance of exploring robust solutions. Modern cryptography provides powerful tools for building systems that can withstand manipulation and allow for public verification.
