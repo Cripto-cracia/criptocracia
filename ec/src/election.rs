@@ -17,7 +17,7 @@ pub struct BlindTokenRequest {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Status {
     Open,
     InProgress,
@@ -26,7 +26,7 @@ pub enum Status {
 }
 
 /// Commissioner of Elections (CE) manages the election process.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Election {
     pub id: String,
     pub name: String,

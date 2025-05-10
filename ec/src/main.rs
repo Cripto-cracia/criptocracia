@@ -27,6 +27,34 @@ use types::{Candidate, Message, Voter};
 // Npub public key:  npub1qqqqqxkw2lgd59lurptz73jc43ksjwevezahh4zg20gvr9hzf2wq8nzqyl
 // Nsec private key: nsec1u0enx5rjskqv65wm3aqy34s5jyx53fwq6lc676q3aq7q0lyxtfwqph3yue
 
+/// Publish the state of the election
+async fn publish_election_event(client: &Client, keys: &Keys, election: &Election) -> Result<()> {
+    log::info!(
+        "Publishing election {} status: {:?}",
+        election.id,
+        election.status
+    );
+    // Old election events are expired after 15 days
+    let expire_ts = chrono::Utc::now()
+        .checked_add_signed(chrono::Duration::days(15))
+        .unwrap()
+        .timestamp() as u64;
+    let future_ts = Timestamp::from(expire_ts);
+    let event = EventBuilder::new(Kind::Custom(35_000), election.as_json_string())
+        .tag(Tag::identifier(election.id.to_string()))
+        .tag(Tag::expiration(future_ts))
+        .sign(keys)
+        .await?;
+
+    client.send_event(&event).await?;
+    log::info!(
+        "Event with election {} status {:?} broadcast to Nostr relays!",
+        election.id,
+        election.status
+    );
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     // Initialize logger
@@ -45,8 +73,8 @@ async fn main() -> Result<()> {
     // Add the Mostro relay and connect
     client.add_relay("wss://relay.mostro.network").await?;
     client.connect().await;
-
-    let now_ts = chrono::Utc::now().timestamp() as u64;
+    // The election starts in 60 seconds
+    let starting_ts = chrono::Utc::now().timestamp() as u64 + 60;
     // Duration of the election
     let duration = 60 * 60; // 1 hour in seconds
     let election = Election::new(
@@ -57,53 +85,67 @@ async fn main() -> Result<()> {
             Candidate::new(3, "Sheep 🐑"),
             Candidate::new(4, "Sloth 🦥"),
         ],
-        now_ts,
+        starting_ts,
         duration,
     );
     let election = Arc::new(Mutex::new(election));
     // --- Timers to change status automatically ---
     {
         let election = Arc::clone(&election);
+        let keys = keys.clone();
+        let client = client.clone();
         tokio::spawn(async move {
-            let start_ts = election.lock().unwrap().start_time;
+            let start_ts = {
+                let e = election.lock().unwrap();
+                e.start_time
+            };
             let now = chrono::Utc::now().timestamp() as u64;
             let delay = start_ts.saturating_sub(now);
             sleep_until(Instant::now() + Duration::from_secs(delay)).await;
-            let mut e = election.lock().unwrap();
-            e.status = Status::InProgress;
-            log::info!("Election {} → InProgress", e.id);
+            let e_data = {
+                let mut e = election.lock().unwrap();
+                e.status = Status::InProgress;
+                log::info!("Election {} -> InProgress", e.id);
+                e.clone()
+            };
+            // Publish the event with the new status
+            if (publish_election_event(&client, &keys, &e_data).await).is_err() {
+                log::error!("Error on publish election with status: {:?}", e_data.status);
+            }
         });
     }
     {
         let election = Arc::clone(&election);
+        let keys = keys.clone();
+        let client = client.clone();
         tokio::spawn(async move {
-            let end_ts = election.lock().unwrap().end_time;
+            let end_ts = {
+                let e = election.lock().unwrap();
+                e.end_time
+            };
             let now = chrono::Utc::now().timestamp() as u64;
             let delay = end_ts.saturating_sub(now);
             sleep_until(Instant::now() + Duration::from_secs(delay)).await;
-            let mut e = election.lock().unwrap();
-            e.status = Status::Finished;
-            log::info!("Election {} → Finished", e.id);
+            let e_data = {
+                let mut e = election.lock().unwrap();
+                e.status = Status::Finished;
+                log::info!("Election {} -> Finished", e.id);
+                e.clone()
+            };
+            // Publish the event with the new status
+            if (publish_election_event(&client, &keys, &e_data).await).is_err() {
+                log::error!("Error on publish election with status: {:?}", e_data.status);
+            }
         });
     }
-    let e_json = election.lock().unwrap().as_json_string();
-    let expire_ts = chrono::Utc::now()
-        .checked_add_signed(chrono::Duration::days(5))
-        .unwrap()
-        .timestamp() as u64;
-    let future_ts = Timestamp::from(expire_ts);
-    let election_id = election.lock().unwrap().id.clone();
+    let e_data = {
+        let e = election.lock().unwrap();
+        e.clone()
+    };
+    if (publish_election_event(&client, &keys, &e_data).await).is_err() {
+        log::error!("Error on publish election with status {:?}", e_data.status);
+    }
 
-    let list_event = EventBuilder::new(Kind::Custom(35_000), e_json)
-        .tag(Tag::identifier(election_id.clone()))
-        .tag(Tag::expiration(future_ts))
-        .sign(&keys)
-        .await?;
-
-    // Publish the event to the relay
-    client.send_event(&list_event).await?;
-
-    println!("Event with the list of candidates broadcast to Nostr relays!");
     // --- Register voters ---
     let voters: Vec<Voter> = serde_json::from_str(&fs::read_to_string("voters_pubkeys.json")?)?;
     {
