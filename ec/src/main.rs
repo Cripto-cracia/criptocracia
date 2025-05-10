@@ -318,10 +318,10 @@ async fn main() -> Result<()> {
                             // Tally the votes
                             let tally = election.lock().unwrap().tally();
                             let mut results = String::new();
-                            let mut json_results: Vec<(String, u32)> = Vec::new();
+                            let mut json_results: Vec<(u8, u32)> = Vec::new();
                             for (cand, count) in &tally {
                                 results.push_str(&format!("{}: {} vote(s)\n", cand.name, count));
-                                json_results.push((cand.name.to_string().clone(), *count));
+                                json_results.push((cand.id, *count));
                             }
                             let json_string = match serde_json::to_string(&json_results) {
                                 Ok(json) => json,
