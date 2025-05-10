@@ -48,6 +48,7 @@ struct App {
     secret: Option<Secret>,       // Secret used to blind the nonce
     election_id: Option<String>,
     candidate_id: Option<u8>,
+    results: Option<Vec<(u8, u32)>>, // Results of the election
 }
 
 /// Draws the TUI interface with tabs and active content.
@@ -62,9 +63,18 @@ fn ui_draw(
 ) {
     let app = app.lock().unwrap();
     let ballot_text = if let (Some(eid), Some(cid)) = (&app.election_id, app.candidate_id) {
-        format!("Election: {}, Candidate: {}", eid, cid)
+        format!("Election: {}, Candidate voted: {}", eid, cid)
     } else {
         "No vote yet".into()
+    };
+    let results_text = if let Some(results) = &app.results {
+        results
+            .iter()
+            .map(|(id, votes)| format!("Candidate {}: {} votes", id, votes))
+            .collect::<Vec<_>>()
+            .join("\n")
+    } else {
+        "No results yet".into()
     };
     let chunks = Layout::new(
         Direction::Vertical,
@@ -169,19 +179,29 @@ fn ui_draw(
         .block(block_c);
     f.render_widget(table_c, chunks[1]);
 
+    let bottom_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(vec![Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(chunks[2]);
+
     // === AREA 2: Ballot ===
-    let mut block_b = Block::default()
+    let block_b = Block::default()
         .title("Ballot")
         .borders(Borders::ALL)
         .border_type(ratatui::widgets::BorderType::Rounded)
         .style(Style::default().bg(BACKGROUND_COLOR));
-    if active_area == 2 {
-        block_b = block_b
-            .title_style(Style::default().bg(PRIMARY_COLOR).fg(Color::Black))
-            .border_style(Style::default().bg(PRIMARY_COLOR).fg(Color::Black));
-    }
+
     let paragraph = Paragraph::new(ballot_text).block(block_b);
-    f.render_widget(paragraph, chunks[2]);
+    f.render_widget(paragraph, bottom_layout[0]);
+
+    let block_r = Block::default()
+        .title("Results")
+        .borders(Borders::ALL)
+        .border_type(ratatui::widgets::BorderType::Rounded)
+        .style(Style::default().bg(BACKGROUND_COLOR));
+
+    let paragraph = Paragraph::new(results_text).block(block_r);
+    f.render_widget(paragraph, bottom_layout[1]);
 }
 
 #[tokio::main]
@@ -225,7 +245,11 @@ async fn main() -> Result<(), anyhow::Error> {
     let timestamp = Timestamp::from(since_time);
 
     // Build the filter for NIP-69 (orders) events from Mostro.
-    let filter = Filter::new().author(ec_pubkey).limit(20).since(timestamp);
+    let filter = Filter::new()
+        .kinds([Kind::Custom(35_000), Kind::Custom(35_001)])
+        .author(ec_pubkey)
+        .limit(20)
+        .since(timestamp);
 
     // Subscribe to the filter.
     client.subscribe(filter, None).await?;
@@ -328,7 +352,9 @@ async fn main() -> Result<(), anyhow::Error> {
                     }
 
                     continue;
-                } else if let Ok(e) = Election::parse_event(&event) {
+                } else if let (Kind::Custom(35_000), Ok(e)) =
+                    (event.kind, Election::parse_event(&event))
+                {
                     let mut lock = elections_clone.lock().unwrap();
 
                     // If we already have the election, update it
@@ -342,6 +368,21 @@ async fn main() -> Result<(), anyhow::Error> {
 
                     // re-order elections by start time
                     lock.sort_by_key(|e| Reverse(e.start_time));
+                } else if Kind::Custom(35_001) == event.kind {
+                    // This is a result event
+                    let results = match Election::parse_result_event(&event) {
+                        Ok(r) => r,
+                        Err(e) => {
+                            log::warn!("Error parsing result event: {}", e);
+                            continue;
+                        }
+                    };
+                    let mut app = app_clone.lock().unwrap();
+                    if app.election_id.is_none() {
+                        continue;
+                    }
+                    app.results = Some(results);
+                    log::info!("Results received: {:?}", app.results);
                 } else {
                     continue;
                 }

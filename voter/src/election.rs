@@ -68,6 +68,20 @@ impl Election {
 
         Ok(election)
     }
+
+    pub fn parse_result_event(event: &Event) -> Result<Vec<(u8, u32)>, anyhow::Error> {
+        let data = event.content.clone();
+        let results: Result<Vec<(u8, u32)>, serde_json::Error> = serde_json::from_str(&data);
+
+        let results = match results {
+            Ok(r) => r,
+            Err(e) => {
+                return Err(anyhow::anyhow!("Failed to parse results event: {}", e));
+            }
+        };
+
+        Ok(results)
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
