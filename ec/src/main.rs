@@ -109,8 +109,12 @@ async fn main() -> Result<()> {
                 e.clone()
             };
             // Publish the event with the new status
-            if (publish_election_event(&client, &keys, &e_data).await).is_err() {
-                log::error!("Error on publish election with status: {:?}", e_data.status);
+            if let Err(err) = publish_election_event(&client, &keys, &e_data).await {
+                log::error!(
+                    "Error publishing election with status {:?}: {}",
+                    e_data.status,
+                    err
+                );
             }
         });
     }
@@ -133,8 +137,12 @@ async fn main() -> Result<()> {
                 e.clone()
             };
             // Publish the event with the new status
-            if (publish_election_event(&client, &keys, &e_data).await).is_err() {
-                log::error!("Error on publish election with status: {:?}", e_data.status);
+            if let Err(err) = publish_election_event(&client, &keys, &e_data).await {
+                log::error!(
+                    "Error publishing election with status {:?}: {}",
+                    e_data.status,
+                    err
+                );
             }
         });
     }
@@ -142,8 +150,12 @@ async fn main() -> Result<()> {
         let e = election.lock().unwrap();
         e.clone()
     };
-    if (publish_election_event(&client, &keys, &e_data).await).is_err() {
-        log::error!("Error on publish election with status {:?}", e_data.status);
+    if let Err(err) = publish_election_event(&client, &keys, &e_data).await {
+        log::error!(
+            "Error publishing election with status {:?}: {}",
+            e_data.status,
+            err
+        );
     }
 
     // --- Register voters ---
@@ -175,7 +187,8 @@ async fn main() -> Result<()> {
                 if let RelayPoolNotification::Event { event, .. } = notification {
                     // Validate event signature
                     if event.verify().is_err() {
-                        log::warn!("Error in event verification")
+                        log::warn!("Event failed signature verification – ignored");
+                        continue;
                     };
                     let event = match nip59::extract_rumor(&keys, &event).await {
                         Ok(u) => u,
@@ -271,10 +284,14 @@ async fn main() -> Result<()> {
                                 Ok(b) => b,
                                 Err(_) => continue,
                             };
-                            let msg_rand = MessageRandomizer::from(
-                                <[u8; 32]>::try_from(&r_bytes[..])
-                                    .expect("Invalid randomizer length"),
-                            );
+                            let rand_arr: [u8; 32] = match <[u8; 32]>::try_from(&r_bytes[..]) {
+                                Ok(arr) => arr,
+                                Err(_) => {
+                                    log::warn!("Invalid randomizer length");
+                                    continue;
+                                }
+                            };
+                            let msg_rand = MessageRandomizer::from(rand_arr);
 
                             // Parse vote as an integer
                             let vote = match parts[3].parse::<u8>() {
@@ -306,8 +323,16 @@ async fn main() -> Result<()> {
                                 results.push_str(&format!("{}: {} vote(s)\n", cand.name, count));
                                 json_results.push((cand.name.to_string().clone(), *count));
                             }
-                            let json_string = serde_json::to_string(&json_results)
-                                .expect("Error al serializar a JSON");
+                            let json_string = match serde_json::to_string(&json_results) {
+                                Ok(json) => json,
+                                Err(err) => {
+                                    log::error!(
+                                        "Failed to serialize election results to JSON: {}",
+                                        err
+                                    );
+                                    continue;
+                                }
+                            };
 
                             let (election_id, expire_ts) = {
                                 let e = election.lock().unwrap();
