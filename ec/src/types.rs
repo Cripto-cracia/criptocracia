@@ -40,3 +40,25 @@ impl Message {
         serde_json::to_string(self).unwrap()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_candidate_new_and_eq() {
+        let a = Candidate::new(5, "X");
+        let b = Candidate { id: 5, name: "X" };
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn test_message_json_roundtrip() {
+        let msg = Message::new("abc".into(), 2, "payload".into());
+        let json = msg.as_json();
+        let parsed = Message::from_json(&json).expect("Should parse correctly");
+        assert_eq!(parsed.id, "abc");
+        assert_eq!(parsed.kind, 2);
+        assert_eq!(parsed.payload, "payload");
+    }
+}
