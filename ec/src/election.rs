@@ -1,4 +1,4 @@
-/*!  counting.rs — Electoral Commission logic
+/*! election.rs — Electoral Commission logic
 Manages voter registration, issuance of blind tokens, vote reception, and counting. */
 
 use blind_rsa_signatures::{BlindSignature, BlindedMessage, Options, SecretKey as RSASecretKey};
@@ -145,5 +145,155 @@ impl Election {
     pub fn as_json_string(&self) -> String {
         let election_data = self.as_json();
         serde_json::to_string(&election_data).unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use num_bigint_dig::{BigUint, RandBigInt};
+    use serde_json::Value;
+    use crate::util::load_keys;
+    use blind_rsa_signatures::{Options};
+    use rand::rngs::OsRng;
+    use sha2::{Digest, Sha256};
+    use std::collections::HashMap;
+
+    fn make_election() -> Election {
+        // start_time = 1000, duration = 3600
+        Election::new(
+            "TestElect".to_string(),
+            vec![Candidate::new(1, "Alice"), Candidate::new(2, "Bob")],
+            1000,
+            3600,
+        )
+    }
+
+    #[test]
+    fn test_new_election_defaults() {
+        let e = make_election();
+        assert_eq!(e.name, "TestElect");
+        assert_eq!(e.status, Status::Open);
+        assert_eq!(e.start_time, 1000);
+        assert_eq!(e.end_time, 1000 + 3600);
+        assert!(e.authorized_voters.is_empty());
+        assert!(e.votes.is_empty());
+        assert!(e.used_tokens.is_empty());
+        assert_eq!(e.candidates.len(), 2);
+        assert_eq!(e.id.len(), 4);
+    }
+
+    #[test]
+    fn test_register_voter_and_duplicate() {
+        let mut e = make_election();
+        let pk = "npub_test";
+        e.register_voter(pk);
+        assert!(e.authorized_voters.contains(pk));
+
+        // Re-registration does not duplicate
+        e.register_voter(pk);
+        assert_eq!(e.authorized_voters.len(), 1);
+
+        // Change status to InProgress and do not allow registration
+        e.status = Status::InProgress;
+        e.register_voter("otra");
+        assert_eq!(e.authorized_voters.len(), 1);
+    }
+
+    #[test]
+    fn test_receive_vote_errors_and_success() {
+        let mut e = make_election();
+        let h1 = BigUint::from(42u8);
+
+        // Status Open → error
+        assert_eq!(
+            e.receive_vote(h1.clone(), 1).unwrap_err(),
+            "Cannot receive vote: election is not in progress"
+        );
+
+        // change to InProgress
+        e.status = Status::InProgress;
+
+        // First valid vote
+        assert!(e.receive_vote(h1.clone(), 2).is_ok());
+        assert_eq!(e.votes, vec![2]);
+
+        // Duplicated vote → error
+        assert_eq!(
+            e.receive_vote(h1.clone(), 2).unwrap_err(),
+            "duplicated vote"
+        );
+    }
+
+    #[test]
+    fn test_tally_counts() {
+        let mut e = make_election();
+        e.status = Status::InProgress;
+        // Valid votes to Alice(id=1) and Bob(id=2)
+        let _ = e.receive_vote(BigUint::from(1u8), 1);
+        let _ = e.receive_vote(BigUint::from(2u8), 2);
+        let _ = e.receive_vote(BigUint::from(3u8), 1);
+
+        let counts = e.tally();
+        let mut expected = HashMap::new();
+        expected.insert(Candidate::new(1, "Alice"), 2);
+        expected.insert(Candidate::new(2, "Bob"), 1);
+        assert_eq!(counts, expected);
+    }
+
+    #[test]
+    fn test_as_json_string_and_value() {
+        let mut e = make_election();
+        e.status = Status::Finished;
+        let s = e.as_json_string();
+        let v: Value = serde_json::from_str(&s).unwrap();
+        assert_eq!(v["name"], "TestElect");
+        assert_eq!(v["status"], "finished");
+        assert_eq!(v["start_time"], 1000);
+        assert_eq!(v["end_time"], 4600);
+        // candidates
+        let cands = v["candidates"].as_array().unwrap();
+        assert_eq!(cands.len(), 2);
+        assert_eq!(cands[0]["id"], 1);
+        assert_eq!(cands[1]["name"], "Bob");
+    }
+
+    #[test]
+    fn test_blind_signature_flow() {
+        // Load RSA keys
+        let (pk, sk) =
+            load_keys("ec_private.pem", "ec_public.pem").expect("The keys could not be loaded");
+
+        // Simulates the voter: generates a random 128-bit nonce and its SHA256 hash
+        let rng = &mut rand::thread_rng();
+        // Generate nonce and its hash
+        let nonce: BigUint = OsRng.gen_biguint(128);
+        // Hash the nonce
+        let h_n_bytes = Sha256::digest(nonce.to_bytes_be()).to_vec();
+
+        // Voter blind the hash
+        let options = Options::default();
+        let blinding_result = pk
+            .blind(rng, &h_n_bytes, true, &options)
+            .expect("Error blinding message");
+
+        // The server (EC) issues the blind signature
+        let blind_sig = sk
+            .blind_sign(rng, &blinding_result.blind_msg, &options)
+            .expect("Blind signing error");
+
+        // The voter "unblinds"
+        let token = pk.finalize(
+            &blind_sig,
+            &blinding_result.secret,
+            blinding_result.msg_randomizer,
+            &h_n_bytes,
+            &options,
+        ).expect("Error getting the token");
+        // Voter verify against the original hash.
+        assert!(
+            token.verify(&pk, blinding_result.msg_randomizer, &h_n_bytes, &options).is_ok(),
+            "la firma ciega no es válida"
+        );
     }
 }
