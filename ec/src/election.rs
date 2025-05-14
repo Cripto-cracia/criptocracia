@@ -293,7 +293,7 @@ mod tests {
         // Voter verify against the original hash.
         assert!(
             token.verify(&pk, blinding_result.msg_randomizer, &h_n_bytes, &options).is_ok(),
-            "la firma ciega no es válida"
+            "The token is not valid"
         );
     }
 }

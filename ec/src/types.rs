@@ -56,7 +56,7 @@ mod tests {
     fn test_message_json_roundtrip() {
         let msg = Message::new("abc".into(), 2, "payload".into());
         let json = msg.as_json();
-        let parsed = Message::from_json(&json).expect("debe parsear bien");
+        let parsed = Message::from_json(&json).expect("Should parse correctly");
         assert_eq!(parsed.id, "abc");
         assert_eq!(parsed.kind, 2);
         assert_eq!(parsed.payload, "payload");
