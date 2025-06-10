@@ -64,6 +64,9 @@ async fn main() -> Result<()> {
 
     // 1. Load the keys from PEM files
     let (pk, sk) = load_keys("ec_private.pem", "ec_public.pem")?;
+    let pk_der = pk.to_der()?;
+    // We need to encode the RSA public key in Base64 to publish it on Nostr
+    let pk_der_b64 = general_purpose::STANDARD.encode(&pk_der);
 
     println!("🔑 Electoral Commission Public key: {}", keys.public_key());
 
@@ -87,6 +90,7 @@ async fn main() -> Result<()> {
         ],
         starting_ts,
         duration,
+        pk_der_b64,
     );
     let election = Arc::new(Mutex::new(election));
     // --- Timers to change status automatically ---
