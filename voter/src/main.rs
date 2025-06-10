@@ -328,7 +328,16 @@ async fn main() -> Result<(), anyhow::Error> {
                                 .expect("Missing h_n_bytes for token finalization");
 
                             let options = Options::default();
-                            let token = match app.ec_rsa_pub_key.as_ref().unwrap().finalize(
+                            let ec_key = match app.ec_rsa_pub_key.as_ref() {
+                                Some(key) => key,
+                                None => {
+                                    log::warn!(
+                                        "EC RSA public key not available for token finalization"
+                                    );
+                                    continue;
+                                }
+                            };
+                            let token = match ec_key.finalize(
                                 &blind_sig,
                                 secret,
                                 Some(msg_rand),
@@ -432,7 +441,13 @@ async fn main() -> Result<(), anyhow::Error> {
                         KeyCode::Enter => {
                             let mut app = app.lock().unwrap();
                             if active_area == 0 {
-                                let pk = app.ec_rsa_pub_key.as_ref().expect("Failed to load EC public key");
+                                let pk = match app.ec_rsa_pub_key.as_ref() {
+                                    Some(key) => key,
+                                    None => {
+                                        log::error!("EC RSA public key not available - cannot request token");
+                                        continue;
+                                    }
+                                };
                                 let options = Options::default();
                                 let rng = &mut rand::thread_rng();
                                 // 1) Generate nonce and its hash
