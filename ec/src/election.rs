@@ -37,11 +37,18 @@ pub struct Election {
     pub start_time: u64,
     pub end_time: u64,
     pub status: Status,
+    pub rsa_pub_key: String, // RSA public key for the EC
 }
 
 impl Election {
     /// Create a new EC with a 2048-bit RSA key.
-    pub fn new(name: String, candidates: Vec<Candidate>, start_time: u64, duration: u64) -> Self {
+    pub fn new(
+        name: String,
+        candidates: Vec<Candidate>,
+        start_time: u64,
+        duration: u64,
+        rsa_pub_key: String,
+    ) -> Self {
         let end_time = start_time + duration;
         let id = nanoid!(
             4,
@@ -59,6 +66,7 @@ impl Election {
             start_time,
             end_time,
             status: Status::Open,
+            rsa_pub_key,
         }
     }
 
@@ -138,6 +146,7 @@ impl Election {
                 Status::Finished => "finished",
                 Status::Canceled => "canceled",
             },
+            "rsa_pub_key": self.rsa_pub_key,
         });
         election_data
     }
@@ -151,11 +160,11 @@ impl Election {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use num_bigint_dig::{BigUint, RandBigInt};
-    use serde_json::Value;
     use crate::util::load_keys;
-    use blind_rsa_signatures::{Options};
+    use blind_rsa_signatures::Options;
+    use num_bigint_dig::{BigUint, RandBigInt};
     use rand::rngs::OsRng;
+    use serde_json::Value;
     use sha2::{Digest, Sha256};
     use std::collections::HashMap;
 
@@ -166,6 +175,7 @@ mod tests {
             vec![Candidate::new(1, "Alice"), Candidate::new(2, "Bob")],
             1000,
             3600,
+            "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyzrjKKlz8JpyKrqnCNr2n/iXwSgHAnrNyZwOJ6UW4actxDnI3dyweOqXtGZyIg4+PeEmDrTY5sP6pN2p5qVM6XGmt7DCfStJgaCpB0D/BZd/ar/sh9aj9ATLQe24/UDXweGTgzWVsky8uCRODczaxhDPXvwRAQICuZNO3OxQ5ss7uc1ZfSDS++857q8k6KHdbnWkAy3+NoGslZWqIQH/h9tDl8zfKH5AP5MZibdna+/P2wbz86/8uq+hBupxwympiQXxLB7rfjfOkLX22WguseovpbA/7If3LNned5UuxX1IxuFzBtw7W1RAy8B1MqlAobf5K+e4XzAzl49AqQn6swIDAQAB".to_string(),
         )
     }
 
@@ -283,16 +293,20 @@ mod tests {
             .expect("Blind signing error");
 
         // The voter "unblinds"
-        let token = pk.finalize(
-            &blind_sig,
-            &blinding_result.secret,
-            blinding_result.msg_randomizer,
-            &h_n_bytes,
-            &options,
-        ).expect("Error getting the token");
+        let token = pk
+            .finalize(
+                &blind_sig,
+                &blinding_result.secret,
+                blinding_result.msg_randomizer,
+                &h_n_bytes,
+                &options,
+            )
+            .expect("Error getting the token");
         // Voter verify against the original hash.
         assert!(
-            token.verify(&pk, blinding_result.msg_randomizer, &h_n_bytes, &options).is_ok(),
+            token
+                .verify(&pk, blinding_result.msg_randomizer, &h_n_bytes, &options)
+                .is_ok(),
             "The token is not valid"
         );
     }
