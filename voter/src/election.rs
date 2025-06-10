@@ -29,6 +29,7 @@ pub struct Election {
     pub start_time: u64,
     pub end_time: u64,
     pub status: Status,
+    pub rsa_pub_key: String,
 }
 
 impl Election {
@@ -38,6 +39,7 @@ impl Election {
         candidates: Vec<Candidate>,
         start_time: u64,
         duration: u64,
+        rsa_pub_key: String,
     ) -> Self {
         let end_time = start_time + duration;
         // Validate that ID follows expected format (4-character hex string)
@@ -52,6 +54,7 @@ impl Election {
             start_time,
             end_time,
             status: Status::Open,
+            rsa_pub_key,
         }
     }
 

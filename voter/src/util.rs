@@ -1,9 +1,8 @@
 use anyhow::Result;
+use base64::engine::{Engine, general_purpose};
 use blind_rsa_signatures::PublicKey as RSAPublicKey;
 use chrono::Local;
 use fern::Dispatch;
-use std::fs;
-use std::path::Path;
 
 /// Initialize logger function
 pub fn setup_logger(level: &str) -> Result<(), fern::InitError> {
@@ -30,11 +29,10 @@ pub fn setup_logger(level: &str) -> Result<(), fern::InitError> {
     Ok(())
 }
 
-/// Loads RSA public key from PEM files and converts it
+/// Loads RSA public key from Base64 enconded der public key and converts it
 /// to the `blind-rsa-signatures` type.
-pub fn load_ec_pubkey<P: AsRef<Path>>(pub_path: P) -> Result<RSAPublicKey> {
-    let pub_pem = fs::read_to_string(pub_path)?;
+pub fn get_ec_pubkey(b64_pubkey: &str) -> Result<RSAPublicKey> {
+    let pub_der = general_purpose::STANDARD.decode(b64_pubkey)?;
 
-    // Parse the PEM to RSA
-    Ok(RSAPublicKey::from_pem(&pub_pem)?)
+    Ok(RSAPublicKey::from_der(&pub_der)?)
 }

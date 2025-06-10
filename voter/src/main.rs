@@ -4,9 +4,10 @@ pub mod util;
 
 use crate::election::{Election, Message, Status};
 use crate::settings::{Settings, init_settings};
-use crate::util::{load_ec_pubkey, setup_logger};
+use crate::util::{get_ec_pubkey, setup_logger};
 
 use base64::engine::{Engine, general_purpose};
+use blind_rsa_signatures::PublicKey as RSAPublicKey;
 use blind_rsa_signatures::{BlindSignature, MessageRandomizer, Options, Secret, Signature};
 use chrono::{Duration as ChronoDuration, Utc};
 use crossterm::event::{Event as CEvent, EventStream, KeyCode, KeyEvent};
@@ -48,7 +49,8 @@ struct App {
     secret: Option<Secret>,       // Secret used to blind the nonce
     election_id: Option<String>,
     candidate_id: Option<u8>,
-    results: Option<Vec<(u8, u32)>>, // Results of the election
+    results: Option<Vec<(u8, u32)>>,      // Results of the election
+    ec_rsa_pub_key: Option<RSAPublicKey>, // EC's RSA public key
 }
 
 /// Draws the TUI interface with tabs and active content.
@@ -217,8 +219,6 @@ async fn main() -> Result<(), anyhow::Error> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let pk = load_ec_pubkey("ec_public.pem").expect("Failed to load EC public key");
-
     // Shared state: elections are stored in memory.
     let elections: Arc<Mutex<Vec<Election>>> = Arc::new(Mutex::new(Vec::new()));
     let app = Arc::new(Mutex::new(App::default()));
@@ -244,7 +244,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .timestamp() as u64;
     let timestamp = Timestamp::from(since_time);
 
-    // Build the filter for NIP-69 (orders) events from Mostro.
+    // Build the filter for to get Elections events from the Electoral Commission.
     let filter = Filter::new()
         .kinds([Kind::Custom(35_000), Kind::Custom(35_001)])
         .author(ec_pubkey)
@@ -328,7 +328,7 @@ async fn main() -> Result<(), anyhow::Error> {
                                 .expect("Missing h_n_bytes for token finalization");
 
                             let options = Options::default();
-                            let token = match pk.finalize(
+                            let token = match app.ec_rsa_pub_key.as_ref().unwrap().finalize(
                                 &blind_sig,
                                 secret,
                                 Some(msg_rand),
@@ -356,6 +356,11 @@ async fn main() -> Result<(), anyhow::Error> {
                     (event.kind, Election::parse_event(&event))
                 {
                     let mut lock = elections_clone.lock().unwrap();
+                    let mut app = app_clone.lock().unwrap();
+                    app.ec_rsa_pub_key = Some(
+                        get_ec_pubkey(e.rsa_pub_key.as_str())
+                            .expect("Failed to load EC public key"),
+                    );
 
                     // If we already have the election, update it
                     if let Some(existing) = lock.iter_mut().find(|x| x.id == e.id) {
@@ -424,7 +429,7 @@ async fn main() -> Result<(), anyhow::Error> {
                         KeyCode::Enter => {
                             let mut app = app.lock().unwrap();
                             if active_area == 0 {
-                                let pk = load_ec_pubkey("ec_public.pem").expect("Failed to load EC public key");
+                                let pk = app.ec_rsa_pub_key.as_ref().expect("Failed to load EC public key");
                                 let options = Options::default();
                                 let rng = &mut rand::thread_rng();
                                 // 1) Generate nonce and its hash
