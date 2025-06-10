@@ -122,7 +122,8 @@ An addressable event kind `35000` with the election information in a serialized 
       "name": "Sloth 🦥"
     }
   ],
-  "end_time": 1746615243
+  "end_time": 1746615243,
+  "rsa_pub_key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyzrjKKlz8JpyKrqnCNr2n/iXwSgHAnrNyZwOJ6UW4actxDnI3dyweOqXtGZyIg4+PeEmDrTY5sP6pN2p5qVM6XGmt7DCfStJgaCpB0D/BZd/ar/sh9aj9ATLQe24/UDXweGTgzWVsky8uCRODczaxhDPXvwRAQICuZNO3OxQ5ss7uc1ZfSDS++857q8k6KHdbnWkAy3+NoGslZWqIQH/h9tDl8zfKH5AP5MZibdna+/P2wbz86/8uq+hBupxwympiQXxLB7rfjfOkLX22WguseovpbA/7If3LNned5UuxX1IxuFzBtw7W1RAy8B1MqlAobf5K+e4XzAzl49AqQn6swIDAQAB"
 }
 ```
 
@@ -143,7 +144,7 @@ The event would look like this:
         "1747043643"
       ]
     ],
-    "content": "{\"candidates\":[{\"id\":1,\"name\":\"Donkey 🫏\"},{\"id\":2,\"name\":\"Rat 🐀\"},{\"id\":3,\"name\":\"Sheep 🐑\"},{\"id\":4,\"name\":\"Sloth 🦥\"}],\"end_time\":1746615243,\"id\":\"f5f7\",\"name\":\"Libertad 2024\",\"start_time\":1746611643,\"status\":\"open\"}",
+    "content": "{\"candidates\":[{\"id\":1,\"name\":\"Donkey 🫏\"},{\"id\":2,\"name\":\"Rat 🐀\"},{\"id\":3,\"name\":\"Sheep 🐑\"},{\"id\":4,\"name\":\"Sloth 🦥\"}],\"end_time\":1746615243,\"id\":\"f5f7\",\"name\":\"Libertad 2024\",\"rsa_pub_key\":\"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyzrjKKlz8JpyKrqnCNr2n/iXwSgHAnrNyZwOJ6UW4actxDnI3dyweOqXtGZyIg4+PeEmDrTY5sP6pN2p5qVM6XGmt7DCfStJgaCpB0D/BZd/ar/sh9aj9ATLQe24/UDXweGTgzWVsky8uCRODczaxhDPXvwRAQICuZNO3OxQ5ss7uc1ZfSDS++857q8k6KHdbnWkAy3+NoGslZWqIQH/h9tDl8zfKH5AP5MZibdna+/P2wbz86/8uq+hBupxwympiQXxLB7rfjfOkLX22WguseovpbA/7If3LNned5UuxX1IxuFzBtw7W1RAy8B1MqlAobf5K+e4XzAzl49AqQn6swIDAQAB\",\"start_time\":1746611643,\"status\":\"open\"}",
     "sig": "8b5bc04003c1d20ba98d33b2fd98a536d538d58afa1c9cfa81d3b693a3a20a764b51258e28335b10945439f7a09fca1d4d2ac40135a506e1bb4a8116259c46ab",
     "id": "557d833876048e50068dfb06b82344a058d8104f08578e8060623ec8004c29ac",
     "pubkey": "0000001ace57d0da17fc18562f4658ac6d093b2cc8bb7bd44853d0c196e24a9c",
