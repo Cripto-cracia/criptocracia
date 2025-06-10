@@ -357,10 +357,13 @@ async fn main() -> Result<(), anyhow::Error> {
                 {
                     let mut lock = elections_clone.lock().unwrap();
                     let mut app = app_clone.lock().unwrap();
-                    app.ec_rsa_pub_key = Some(
-                        get_ec_pubkey(e.rsa_pub_key.as_str())
-                            .expect("Failed to load EC public key"),
-                    );
+                    app.ec_rsa_pub_key = match get_ec_pubkey(e.rsa_pub_key.as_str()) {
+                        Ok(key) => Some(key),
+                        Err(err) => {
+                            log::error!("Failed to parse EC public key from election {}: {}", e.id, err);
+                            None
+                        }
+                    };
 
                     // If we already have the election, update it
                     if let Some(existing) = lock.iter_mut().find(|x| x.id == e.id) {
