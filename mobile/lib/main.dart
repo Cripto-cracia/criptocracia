@@ -5,6 +5,8 @@ import 'providers/election_provider.dart';
 import 'providers/results_provider.dart';
 import 'screens/elections_screen.dart';
 import 'screens/results_screen.dart';
+import 'screens/settings_screen.dart';
+import 'services/nostr_key_manager.dart';
 
 void main(List<String> args) {
   AppConfig.parseArguments(args);
@@ -47,6 +49,16 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    // Initialize Nostr keys on first launch
+    _initializeKeys();
+  }
+
+  Future<void> _initializeKeys() async {
+    try {
+      await NostrKeyManager.initializeKeysIfNeeded();
+    } catch (e) {
+      debugPrint('Error initializing Nostr keys: $e');
+    }
   }
 
   @override
@@ -75,13 +87,9 @@ class _MainScreenState extends State<MainScreen> {
               onPressed: () => _showDebugInfo(),
               tooltip: 'Debug Info',
             ),
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: () => _showAppInfo(),
-            tooltip: 'App Info',
-          ),
         ],
       ),
+      drawer: _buildDrawer(),
       body: IndexedStack(index: _currentIndex, children: pages),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
@@ -92,6 +100,96 @@ class _MainScreenState extends State<MainScreen> {
             label: 'Elections',
           ),
           BottomNavigationBarItem(icon: Icon(Icons.poll), label: 'Results'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Icon(
+                  Icons.how_to_vote,
+                  size: 32,
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Criptocracia',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'Trustless Electronic Voting',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onPrimary.withValues(alpha: 0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.how_to_vote),
+            title: const Text('Elections'),
+            onTap: () {
+              Navigator.pop(context);
+              setState(() => _currentIndex = 0);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.poll),
+            title: const Text('Results'),
+            onTap: () {
+              Navigator.pop(context);
+              setState(() => _currentIndex = 1);
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text('Settings'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+          ),
+          if (AppConfig.debugMode) ...[
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.bug_report),
+              title: const Text('Debug Info'),
+              onTap: () {
+                Navigator.pop(context);
+                _showDebugInfo();
+              },
+            ),
+          ],
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: const Text('About'),
+            onTap: () {
+              Navigator.pop(context);
+              _showAppInfo();
+            },
+          ),
         ],
       ),
     );
