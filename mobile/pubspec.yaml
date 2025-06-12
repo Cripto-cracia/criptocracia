@@ -55,6 +55,16 @@ dependencies:
   
   # Utilities
   args: ^2.6.0
+  
+  # Mnemonic generation and BIP39
+  bip39: ^1.0.6
+  ed25519_hd_key: ^2.2.0
+  
+  # Secure storage
+  flutter_secure_storage: ^9.2.2
+  shared_preferences: ^2.3.3
+  
+  # Clipboard (built into Flutter SDK)
 
 dev_dependencies:
   flutter_test:
