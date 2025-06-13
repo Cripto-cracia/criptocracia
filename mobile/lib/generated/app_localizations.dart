@@ -122,11 +122,11 @@ abstract class AppLocalizations {
   /// **'Results'**
   String get navResults;
 
-  /// Navigation label for settings
+  /// Navigation label for account
   ///
   /// In en, this message translates to:
-  /// **'Settings'**
-  String get navSettings;
+  /// **'Account'**
+  String get navAccount;
 
   /// Navigation label for about
   ///
@@ -437,13 +437,13 @@ abstract class AppLocalizations {
   /// Minutes ago format
   ///
   /// In en, this message translates to:
-  /// **'{minutes}m ago'**
+  /// **'{minutes, plural, =1{1 min ago} other{# min ago}}'**
   String timeFormatMinutesAgo(int minutes);
 
   /// Hours ago format
   ///
   /// In en, this message translates to:
-  /// **'{hours}h ago'**
+  /// **'{hours, plural, =1{1h ago} other{#h ago}}'**
   String timeFormatHoursAgo(int hours);
 
   /// Last updated label with time
@@ -452,11 +452,11 @@ abstract class AppLocalizations {
   /// **'Last updated: {time}'**
   String lastUpdatedLabel(String time);
 
-  /// Settings screen title
+  /// Account screen title
   ///
   /// In en, this message translates to:
-  /// **'Settings'**
-  String get settings;
+  /// **'Account'**
+  String get account;
 
   /// Error loading keys message
   ///

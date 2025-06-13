@@ -17,9 +17,9 @@
   "@navResults": {
     "description": "Navigation label for results tab"
   },
-  "navSettings": "Settings",
-  "@navSettings": {
-    "description": "Navigation label for settings"
+  "navAccount": "Account",
+  "@navAccount": {
+    "description": "Navigation label for account"
   },
   "navAbout": "About",
   "@navAbout": {
@@ -306,9 +306,9 @@
     }
   },
   
-  "settings": "Settings",
-  "@settings": {
-    "description": "Settings screen title"
+  "account": "Account",
+  "@account": {
+    "description": "Account screen title"
   },
   "errorLoadingKeys": "Error loading keys",
   "@errorLoadingKeys": {

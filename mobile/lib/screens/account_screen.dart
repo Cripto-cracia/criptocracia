@@ -3,14 +3,14 @@ import 'package:flutter/services.dart';
 import '../services/nostr_key_manager.dart';
 import '../generated/app_localizations.dart';
 
-class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+class AccountScreen extends StatefulWidget {
+  const AccountScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  State<AccountScreen> createState() => _AccountScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _AccountScreenState extends State<AccountScreen> {
   Map<String, dynamic>? _keys;
   bool _isLoading = true;
   String? _error;
@@ -57,7 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).settings),
+        title: Text(AppLocalizations.of(context).account),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: _isLoading
@@ -91,11 +91,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                 )
-              : _buildSettingsContent(),
+              : _buildAccountContent(),
     );
   }
 
-  Widget _buildSettingsContent() {
+  Widget _buildAccountContent() {
     if (_keys == null) {
       return Center(child: Text(AppLocalizations.of(context).noKeysAvailable));
     }

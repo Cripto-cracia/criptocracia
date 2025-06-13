@@ -6,7 +6,7 @@ import 'providers/election_provider.dart';
 import 'providers/results_provider.dart';
 import 'screens/elections_screen.dart';
 import 'screens/results_screen.dart';
-import 'screens/settings_screen.dart';
+import 'screens/account_screen.dart';
 import 'services/nostr_key_manager.dart';
 import 'generated/app_localizations.dart';
 
@@ -172,13 +172,13 @@ class _MainScreenState extends State<MainScreen> {
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.settings),
-            title: Text(AppLocalizations.of(context).navSettings),
+            leading: const Icon(Icons.account_circle),
+            title: Text(AppLocalizations.of(context).navAccount),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                MaterialPageRoute(builder: (context) => const AccountScreen()),
               );
             },
           ),

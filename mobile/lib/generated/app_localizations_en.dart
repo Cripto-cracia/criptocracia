@@ -21,7 +21,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navResults => 'Results';
 
   @override
-  String get navSettings => 'Settings';
+  String get navAccount => 'Account';
 
   @override
   String get navAbout => 'About';
@@ -207,12 +207,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String timeFormatMinutesAgo(int minutes) {
-    return '${minutes}m ago';
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '# min ago',
+      one: '1 min ago',
+    );
+    return '$_temp0';
   }
 
   @override
   String timeFormatHoursAgo(int hours) {
-    return '${hours}h ago';
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '#h ago',
+      one: '1h ago',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -221,7 +233,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get settings => 'Settings';
+  String get account => 'Account';
 
   @override
   String get errorLoadingKeys => 'Error loading keys';

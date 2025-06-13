@@ -21,7 +21,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get navResults => 'Resultados';
 
   @override
-  String get navSettings => 'Ajustes';
+  String get navAccount => 'Cuenta';
 
   @override
   String get navAbout => 'Acerca de';
@@ -209,12 +209,24 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String timeFormatMinutesAgo(int minutes) {
-    return 'hace ${minutes}m';
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: 'hace # min',
+      one: 'hace 1 min',
+    );
+    return '$_temp0';
   }
 
   @override
   String timeFormatHoursAgo(int hours) {
-    return 'hace ${hours}h';
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: 'hace #h',
+      one: 'hace 1h',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -223,7 +235,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get settings => 'Ajustes';
+  String get account => 'Cuenta';
 
   @override
   String get errorLoadingKeys => 'Error al cargar las claves';
