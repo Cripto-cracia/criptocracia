@@ -5,6 +5,7 @@ import '../providers/voting_provider.dart';
 import '../widgets/candidate_card.dart';
 import 'voting_screen.dart';
 import '../generated/app_localizations.dart';
+import '../services/selected_election_service.dart';
 
 class ElectionDetailScreen extends StatefulWidget {
   final Election election;
@@ -16,6 +17,22 @@ class ElectionDetailScreen extends StatefulWidget {
 }
 
 class _ElectionDetailScreenState extends State<ElectionDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Save this election as the selected one when the user opens it
+    _saveSelectedElection();
+  }
+
+  Future<void> _saveSelectedElection() async {
+    try {
+      await SelectedElectionService.setSelectedElection(widget.election);
+      debugPrint('💾 Saved selected election: ${widget.election.name} (${widget.election.id})');
+    } catch (e) {
+      debugPrint('❌ Error saving selected election: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();

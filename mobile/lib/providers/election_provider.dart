@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/election.dart';
 import '../services/nostr_service.dart';
+import '../services/selected_election_service.dart';
 import '../config/app_config.dart';
 import 'dart:convert';
 import 'dart:async';
@@ -76,6 +77,9 @@ class ElectionProvider with ChangeNotifier {
                 _elections = [..._elections];
                 _elections[existingIndex] = election;
                 debugPrint('🔄 Updated existing election: ${election.name} - Status: ${election.status}');
+                
+                // Update selected election if this election is currently selected
+                _updateSelectedElectionIfMatches(election);
               } else {
                 // Add new election to the list
                 _elections = [..._elections, election];
@@ -150,5 +154,34 @@ class ElectionProvider with ChangeNotifier {
     } catch (e) {
       return null;
     }
+  }
+
+  /// Update the selected election if the updated election matches the currently selected one
+  Future<void> _updateSelectedElectionIfMatches(Election updatedElection) async {
+    try {
+      final isSelected = await SelectedElectionService.isElectionSelected(updatedElection.id);
+      if (isSelected) {
+        await SelectedElectionService.setSelectedElection(updatedElection);
+        debugPrint('🔄 Updated selected election storage: ${updatedElection.name} - Status: ${updatedElection.status}');
+      }
+    } catch (e) {
+      debugPrint('❌ Error updating selected election: $e');
+    }
+  }
+
+  /// Get the currently selected election from storage
+  Future<Election?> getSelectedElection() async {
+    return await SelectedElectionService.getSelectedElection();
+  }
+
+  /// Check if there is a selected election
+  Future<bool> hasSelectedElection() async {
+    return await SelectedElectionService.hasSelectedElection();
+  }
+
+  /// Clear the selected election
+  Future<void> clearSelectedElection() async {
+    await SelectedElectionService.clearSelectedElection();
+    debugPrint('🗑️ Cleared selected election from storage');
   }
 }
