@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/election.dart';
 import '../providers/voting_provider.dart';
+import '../generated/app_localizations.dart';
 
 class VotingScreen extends StatefulWidget {
   final Election election;
@@ -33,7 +34,7 @@ class _VotingScreenState extends State<VotingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cast Vote'),
+        title: Text(AppLocalizations.of(context).castVote),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Consumer<VotingProvider>(
@@ -51,7 +52,7 @@ class _VotingScreenState extends State<VotingScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Election',
+                          AppLocalizations.of(context).electionSection,
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: Theme.of(context).colorScheme.primary,
@@ -90,7 +91,7 @@ class _VotingScreenState extends State<VotingScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Your Choice',
+                                AppLocalizations.of(context).yourChoiceSection,
                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: Theme.of(context).colorScheme.primary,
@@ -119,7 +120,7 @@ class _VotingScreenState extends State<VotingScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Voting Process',
+                          AppLocalizations.of(context).votingProcessSection,
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -127,31 +128,31 @@ class _VotingScreenState extends State<VotingScreen> {
                         const SizedBox(height: 16),
                         _buildProcessStep(
                           context,
-                          'Generate Nonce',
+                          AppLocalizations.of(context).generateNonceStep,
                           provider.currentStep >= VotingStep.generateNonce,
                           provider.currentStep == VotingStep.generateNonce && provider.isLoading,
                         ),
                         _buildProcessStep(
                           context,
-                          'Send Blinded Nonce',
+                          AppLocalizations.of(context).sendBlindedNonceStep,
                           provider.currentStep >= VotingStep.sendBlindedNonce,
                           provider.currentStep == VotingStep.sendBlindedNonce && provider.isLoading,
                         ),
                         _buildProcessStep(
                           context,
-                          'Wait for Signature',
+                          AppLocalizations.of(context).waitForSignatureStep,
                           provider.currentStep >= VotingStep.waitForSignature,
                           provider.currentStep == VotingStep.waitForSignature && provider.isLoading,
                         ),
                         _buildProcessStep(
                           context,
-                          'Cast Vote',
+                          AppLocalizations.of(context).castVote,
                           provider.currentStep >= VotingStep.castVote,
                           provider.currentStep == VotingStep.castVote && provider.isLoading,
                         ),
                         _buildProcessStep(
                           context,
-                          'Vote Complete',
+                          AppLocalizations.of(context).voteCompleteStep,
                           provider.currentStep == VotingStep.complete,
                           false,
                         ),
@@ -197,7 +198,7 @@ class _VotingScreenState extends State<VotingScreen> {
                     child: ElevatedButton.icon(
                       onPressed: provider.isLoading ? null : () => provider.startVoting(),
                       icon: const Icon(Icons.how_to_vote),
-                      label: const Text('Start Voting Process'),
+                      label: Text(AppLocalizations.of(context).startVotingProcess),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: Theme.of(context).colorScheme.primary,
@@ -226,15 +227,15 @@ class _VotingScreenState extends State<VotingScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Vote Cast Successfully!',
+                              AppLocalizations.of(context).voteCastSuccess,
                               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                 color: Colors.green,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              'Your vote has been recorded anonymously.',
+                            Text(
+                              AppLocalizations.of(context).voteRecordedMessage,
                               style: TextStyle(color: Colors.green),
                             ),
                           ],
@@ -248,7 +249,7 @@ class _VotingScreenState extends State<VotingScreen> {
                             context, 
                             (route) => route.isFirst,
                           ),
-                          child: const Text('Return to Elections'),
+                          child: Text(AppLocalizations.of(context).returnToElections),
                         ),
                       ),
                     ],
@@ -259,7 +260,7 @@ class _VotingScreenState extends State<VotingScreen> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: provider.isLoading ? null : () => provider.retryCurrentStep(),
-                      child: const Text('Retry'),
+                      child: Text(AppLocalizations.of(context).retry),
                     ),
                   ),
               ],

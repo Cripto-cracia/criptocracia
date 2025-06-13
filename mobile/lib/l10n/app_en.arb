@@ -105,48 +105,6 @@
     "description": "Tamper-evident counting feature"
   },
   
-  "criptocraciaVoterApp": "Criptocracia Voter App",
-  "@criptocraciaVoterApp": {
-    "description": "App name in help text"
-  },
-  "mobileVotingAppDescription": "A mobile voting application using the Nostr protocol.",
-  "@mobileVotingAppDescription": {
-    "description": "App description in help text"
-  },
-  "configuration": "Configuration:",
-  "@configuration": {
-    "description": "Configuration section header"
-  },
-  "usage": "Usage: flutter run -- [OPTIONS]",
-  "@usage": {
-    "description": "Usage instructions"
-  },
-  "options": "Options:",
-  "@options": {
-    "description": "Options section header"
-  },
-  "debugModeOption": "-d, --debug               Enable debug mode",
-  "@debugModeOption": {
-    "description": "Debug mode option description"
-  },
-  "helpOption": "-h, --help                Show this help message",
-  "@helpOption": {
-    "description": "Help option description"
-  },
-  "examples": "Examples:",
-  "@examples": {
-    "description": "Examples section header"
-  },
-  
-  "error": "Error: {message}",
-  "@error": {
-    "description": "Generic error message",
-    "placeholders": {
-      "message": {
-        "type": "String"
-      }
-    }
-  },
   "retry": "Retry",
   "@retry": {
     "description": "Retry button text"
@@ -155,23 +113,23 @@
   "@noElectionsFound": {
     "description": "No elections found title"
   },
-  "noElectionsFoundDescription": "No active elections were found on the Nostr relay in the last 24 hours.",
-  "@noElectionsFoundDescription": {
-    "description": "No elections found description"
+  "noActiveElectionsFound": "No active elections were found on the Nostr relay in the last 24 hours.",
+  "@noActiveElectionsFound": {
+    "description": "No active elections found description"
   },
   
-  "startTime": "Start: {time}",
-  "@startTime": {
-    "description": "Election start time",
+  "electionStartLabel": "Start: {time}",
+  "@electionStartLabel": {
+    "description": "Election start time label",
     "placeholders": {
       "time": {
         "type": "String"
       }
     }
   },
-  "endTime": "End: {time}",
-  "@endTime": {
-    "description": "Election end time",
+  "electionEndLabel": "End: {time}",
+  "@electionEndLabel": {
+    "description": "Election end time label",
     "placeholders": {
       "time": {
         "type": "String"
@@ -187,8 +145,17 @@
       }
     }
   },
-  "noCandidatesAvailable": "No candidates available for this election.",
-  "@noCandidatesAvailable": {
+  "candidatesCountShort": "{count, plural, =0{No candidates} =1{1 candidate} other{# candidates}}",
+  "@candidatesCountShort": {
+    "description": "Short candidates count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noCandidatesForElection": "No candidates available for this election.",
+  "@noCandidatesForElection": {
     "description": "No candidates available message"
   },
   "statusOpen": "Open",
@@ -212,129 +179,126 @@
   "@castVote": {
     "description": "Cast vote screen title and button"
   },
-  "election": "Election",
-  "@election": {
+  "electionSection": "Election",
+  "@electionSection": {
     "description": "Election section header"
   },
-  "yourChoice": "Your Choice",
-  "@yourChoice": {
+  "yourChoiceSection": "Your Choice",
+  "@yourChoiceSection": {
     "description": "Your choice section header"
   },
-  "votingProcess": "Voting Process",
-  "@votingProcess": {
+  "votingProcessSection": "Voting Process",
+  "@votingProcessSection": {
     "description": "Voting process section header"
   },
-  "generateNonce": "Generate Nonce",
-  "@generateNonce": {
-    "description": "Generate nonce step"
+  "generateNonceStep": "Generate Nonce",
+  "@generateNonceStep": {
+    "description": "Generate nonce voting step"
   },
-  "sendBlindedNonce": "Send Blinded Nonce",
-  "@sendBlindedNonce": {
-    "description": "Send blinded nonce step"
+  "sendBlindedNonceStep": "Send Blinded Nonce",
+  "@sendBlindedNonceStep": {
+    "description": "Send blinded nonce voting step"
   },
-  "waitForSignature": "Wait for Signature",
-  "@waitForSignature": {
-    "description": "Wait for signature step"
+  "waitForSignatureStep": "Wait for Signature",
+  "@waitForSignatureStep": {
+    "description": "Wait for signature voting step"
   },
-  "voteComplete": "Vote Complete",
-  "@voteComplete": {
+  "voteCompleteStep": "Vote Complete",
+  "@voteCompleteStep": {
     "description": "Vote complete step"
   },
   "startVotingProcess": "Start Voting Process",
   "@startVotingProcess": {
     "description": "Start voting process button"
   },
-  "voteCastSuccessfully": "Vote Cast Successfully!",
-  "@voteCastSuccessfully": {
+  "voteCastSuccess": "Vote Cast Successfully!",
+  "@voteCastSuccess": {
     "description": "Vote cast success message"
   },
-  "voteRecordedAnonymously": "Your vote has been recorded anonymously.",
-  "@voteRecordedAnonymously": {
-    "description": "Vote recorded message"
+  "voteRecordedMessage": "Your vote has been recorded anonymously.",
+  "@voteRecordedMessage": {
+    "description": "Vote recorded confirmation message"
   },
   "returnToElections": "Return to Elections",
   "@returnToElections": {
     "description": "Return to elections button"
   },
   
-  "electionResults": "{name} - Results",
-  "@electionResults": {
-    "description": "Election results title",
+  "electionResultsTitle": "{name} - Results",
+  "@electionResultsTitle": {
+    "description": "Election results screen title",
     "placeholders": {
       "name": {
         "type": "String"
       }
     }
   },
-  "pauseUpdates": "Pause Updates",
-  "@pauseUpdates": {
+  
+  "pauseUpdatesTooltip": "Pause Updates",
+  "@pauseUpdatesTooltip": {
     "description": "Pause updates tooltip"
   },
-  "resumeUpdates": "Resume Updates",
-  "@resumeUpdates": {
+  "resumeUpdatesTooltip": "Resume Updates",
+  "@resumeUpdatesTooltip": {
     "description": "Resume updates tooltip"
   },
-  "electionSummary": "Election Summary",
-  "@electionSummary": {
-    "description": "Election summary section"
+  "electionSummarySection": "Election Summary",
+  "@electionSummarySection": {
+    "description": "Election summary section header"
   },
-  "totalVotes": "Total Votes",
-  "@totalVotes": {
+  "totalVotesLabel": "Total Votes",
+  "@totalVotesLabel": {
     "description": "Total votes label"
   },
-  "candidates": "Candidates",
-  "@candidates": {
+  "candidatesLabel": "Candidates",
+  "@candidatesLabel": {
     "description": "Candidates label"
   },
-  "status": "Status",
-  "@status": {
+  "statusLabel": "Status",
+  "@statusLabel": {
     "description": "Status label"
   },
-  "live": "Live",
-  "@live": {
-    "description": "Live status"
+  "liveStatus": "Live",
+  "@liveStatus": {
+    "description": "Live status indicator"
   },
-  "paused": "Paused",
-  "@paused": {
-    "description": "Paused status"
+  "pausedStatus": "Paused",
+  "@pausedStatus": {
+    "description": "Paused status indicator"
   },
-  "results": "Results",
-  "@results": {
+  "resultsSection": "Results",
+  "@resultsSection": {
     "description": "Results section header"
   },
-  "liveUpdates": "Live Updates",
-  "@liveUpdates": {
-    "description": "Live updates label"
-  },
-  "noVotesRecorded": "No votes recorded yet",
-  "@noVotesRecorded": {
+  "noVotesRecordedYet": "No votes recorded yet",
+  "@noVotesRecordedYet": {
     "description": "No votes recorded message"
   },
-  "justNow": "Just now",
-  "@justNow": {
+  "timeFormatJustNow": "Just now",
+  "@timeFormatJustNow": {
     "description": "Just now time format"
   },
-  "minutesAgo": "{minutes}m ago",
-  "@minutesAgo": {
-    "description": "Minutes ago time format",
+  "timeFormatMinutesAgo": "{minutes, plural, =1{1 min ago} other{# min ago}}",
+  "@timeFormatMinutesAgo": {
+    "description": "Minutes ago format",
     "placeholders": {
       "minutes": {
         "type": "int"
       }
     }
   },
-  "hoursAgo": "{hours}h ago",
-  "@hoursAgo": {
-    "description": "Hours ago time format",
+  "timeFormatHoursAgo": "{hours, plural, =1{1h ago} other{#h ago}}",
+  "@timeFormatHoursAgo": {
+    "description": "Hours ago format",
     "placeholders": {
       "hours": {
         "type": "int"
       }
     }
   },
-  "lastUpdated": "Last updated: {time}",
-  "@lastUpdated": {
-    "description": "Last updated time",
+  "lastUpdatedLabel": "Last updated: {time}",
+  "@lastUpdatedLabel": {
+    "description": "Last updated label with time",
     "placeholders": {
       "time": {
         "type": "String"
@@ -420,10 +384,6 @@
   "@securityWarningText": {
     "description": "Security warning text"
   },
-  "nip06DialogTitle": "About NIP-06",
-  "@nip06DialogTitle": {
-    "description": "NIP-06 dialog title"
-  },
   "nip06Description": "NIP-06 defines how to derive Nostr keys from a mnemonic seed phrase.",
   "@nip06Description": {
     "description": "NIP-06 description"
@@ -473,15 +433,6 @@
     "description": "New keys generated success message"
   },
   
-  "candidatesCountLabel": "{count} candidates",
-  "@candidatesCountLabel": {
-    "description": "Candidates count label",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "votesCount": "{count} votes",
   "@votesCount": {
     "description": "Votes count",
@@ -495,195 +446,6 @@
   "@vote": {
     "description": "Vote button"
   },
-  "votes": "votes",
-  "@votes": {
-    "description": "Votes label"
-  },
-  "votesRatio": "{votes} / {total}",
-  "@votesRatio": {
-    "description": "Votes ratio display",
-    "placeholders": {
-      "votes": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  
-  "appNotConfigured": "App not configured. Please provide relay URL and EC public key.",
-  "@appNotConfigured": {
-    "description": "App not configured error"
-  },
-  "electionOrCandidateNotSelected": "Election or candidate not selected.",
-  "@electionOrCandidateNotSelected": {
-    "description": "Election or candidate not selected error"
-  },
-  "failedToGenerateBlindNonce": "Failed to generate and blind nonce: {error}",
-  "@failedToGenerateBlindNonce": {
-    "description": "Failed to generate blind nonce error",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "blindedNonceNotGenerated": "Blinded nonce not generated",
-  "@blindedNonceNotGenerated": {
-    "description": "Blinded nonce not generated error"
-  },
-  "failedToSendBlindedNonce": "Failed to send blinded nonce: {error}",
-  "@failedToSendBlindedNonce": {
-    "description": "Failed to send blinded nonce error",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "timeoutWaitingForSignature": "Timeout waiting for blind signature",
-  "@timeoutWaitingForSignature": {
-    "description": "Timeout waiting for signature error"
-  },
-  "failedToReceiveSignature": "Failed to receive blind signature: {error}",
-  "@failedToReceiveSignature": {
-    "description": "Failed to receive signature error",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "missingDataForVoteCasting": "Missing required data for vote casting",
-  "@missingDataForVoteCasting": {
-    "description": "Missing data for vote casting error"
-  },
-  "failedToCastVote": "Failed to cast vote: {error}",
-  "@failedToCastVote": {
-    "description": "Failed to cast vote error",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "failedToLoadElections": "Failed to load elections: {error}",
-  "@failedToLoadElections": {
-    "description": "Failed to load elections error",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "errorListeningToResults": "Error listening to results: {error}",
-  "@errorListeningToResults": {
-    "description": "Error listening to results",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "failedToStartListeningResults": "Failed to start listening to results: {error}",
-  "@failedToStartListeningResults": {
-    "description": "Failed to start listening to results error",
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  
-  "errorWithMessage": "Error: {message}",
-  "@errorWithMessage": {
-    "description": "Generic error with message",
-    "placeholders": {
-      "message": {
-        "type": "String"
-      }
-    }
-  },
-  "noActiveElectionsFound": "No active elections were found on the Nostr relay in the last 24 hours.",
-  "@noActiveElectionsFound": {
-    "description": "No active elections found description"
-  },
-  "noCandidatesForElection": "No candidates available for this election.",
-  "@noCandidatesForElection": {
-    "description": "No candidates available message"
-  },
-  "votingScreenTitle": "Cast Vote",
-  "@votingScreenTitle": {
-    "description": "Voting screen title"
-  },
-  "yourChoiceSection": "Your Choice",
-  "@yourChoiceSection": {
-    "description": "Your choice section header"
-  },
-  "voteCastSuccessMessage": "Vote Cast Successfully!",
-  "@voteCastSuccessMessage": {
-    "description": "Vote cast success message"
-  },
-  "lastUpdatedAt": "Last updated: {time}",
-  "@lastUpdatedAt": {
-    "description": "Last updated time",
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  },
-  "timeFormatJustNow": "Just now",
-  "@timeFormatJustNow": {
-    "description": "Just now time format"
-  },
-  "timeFormatMinutesAgo": "{minutes}m ago",
-  "@timeFormatMinutesAgo": {
-    "description": "Minutes ago format",
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      }
-    }
-  },
-  "timeFormatHoursAgo": "{hours}h ago",
-  "@timeFormatHoursAgo": {
-    "description": "Hours ago format",
-    "placeholders": {
-      "hours": {
-        "type": "int"
-      }
-    }
-  },
-  "candidatesCountShort": "{count} candidates",
-  "@candidatesCountShort": {
-    "description": "Short candidates count",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "electionStartLabel": "Start: {time}",
-  "@electionStartLabel": {
-    "description": "Election start time label",
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  },
-  "electionEndLabel": "End: {time}",
-  "@electionEndLabel": {
-    "description": "Election end time label",
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  },
-  
   "votesLabel": "votes",
   "@votesLabel": {
     "description": "Votes label in singular/plural context"
@@ -700,25 +462,13 @@
       }
     }
   },
-  "notConnectedToRelay": "Not connected to relay",
-  "@notConnectedToRelay": {
-    "description": "Error when not connected to relay"
-  },
-  "failedToConnectRelay": "Failed to connect to Nostr relay: {error}",
-  "@failedToConnectRelay": {
-    "description": "Failed to connect to relay error",
+  "errorWithMessage": "Error: {message}",
+  "@errorWithMessage": {
+    "description": "Generic error with message",
     "placeholders": {
-      "error": {
+      "message": {
         "type": "String"
       }
     }
-  },
-  "noVotesRecordedYet": "No votes recorded yet",
-  "@noVotesRecordedYet": {
-    "description": "No votes recorded message"
-  },
-  "liveUpdatesLabel": "Live Updates",
-  "@liveUpdatesLabel": {
-    "description": "Live updates indicator"
   }
 }

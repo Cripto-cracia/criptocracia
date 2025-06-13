@@ -218,60 +218,6 @@ abstract class AppLocalizations {
   /// **'• Tamper-evident vote counting'**
   String get featureTamperEvident;
 
-  /// App name in help text
-  ///
-  /// In en, this message translates to:
-  /// **'Criptocracia Voter App'**
-  String get criptocraciaVoterApp;
-
-  /// App description in help text
-  ///
-  /// In en, this message translates to:
-  /// **'A mobile voting application using the Nostr protocol.'**
-  String get mobileVotingAppDescription;
-
-  /// Configuration section header
-  ///
-  /// In en, this message translates to:
-  /// **'Configuration:'**
-  String get configuration;
-
-  /// Usage instructions
-  ///
-  /// In en, this message translates to:
-  /// **'Usage: flutter run -- [OPTIONS]'**
-  String get usage;
-
-  /// Options section header
-  ///
-  /// In en, this message translates to:
-  /// **'Options:'**
-  String get options;
-
-  /// Debug mode option description
-  ///
-  /// In en, this message translates to:
-  /// **'-d, --debug               Enable debug mode'**
-  String get debugModeOption;
-
-  /// Help option description
-  ///
-  /// In en, this message translates to:
-  /// **'-h, --help                Show this help message'**
-  String get helpOption;
-
-  /// Examples section header
-  ///
-  /// In en, this message translates to:
-  /// **'Examples:'**
-  String get examples;
-
-  /// Generic error message
-  ///
-  /// In en, this message translates to:
-  /// **'Error: {message}'**
-  String error(String message);
-
   /// Retry button text
   ///
   /// In en, this message translates to:
@@ -284,23 +230,23 @@ abstract class AppLocalizations {
   /// **'No Elections Found'**
   String get noElectionsFound;
 
-  /// No elections found description
+  /// No active elections found description
   ///
   /// In en, this message translates to:
   /// **'No active elections were found on the Nostr relay in the last 24 hours.'**
-  String get noElectionsFoundDescription;
+  String get noActiveElectionsFound;
 
-  /// Election start time
+  /// Election start time label
   ///
   /// In en, this message translates to:
   /// **'Start: {time}'**
-  String startTime(String time);
+  String electionStartLabel(String time);
 
-  /// Election end time
+  /// Election end time label
   ///
   /// In en, this message translates to:
   /// **'End: {time}'**
-  String endTime(String time);
+  String electionEndLabel(String time);
 
   /// Candidates section with count
   ///
@@ -308,11 +254,17 @@ abstract class AppLocalizations {
   /// **'Candidates ({count})'**
   String candidatesCount(int count);
 
+  /// Short candidates count
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No candidates} =1{1 candidate} other{# candidates}}'**
+  String candidatesCountShort(int count);
+
   /// No candidates available message
   ///
   /// In en, this message translates to:
   /// **'No candidates available for this election.'**
-  String get noCandidatesAvailable;
+  String get noCandidatesForElection;
 
   /// Election status: Open
   ///
@@ -348,43 +300,43 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Election'**
-  String get election;
+  String get electionSection;
 
   /// Your choice section header
   ///
   /// In en, this message translates to:
   /// **'Your Choice'**
-  String get yourChoice;
+  String get yourChoiceSection;
 
   /// Voting process section header
   ///
   /// In en, this message translates to:
   /// **'Voting Process'**
-  String get votingProcess;
+  String get votingProcessSection;
 
-  /// Generate nonce step
+  /// Generate nonce voting step
   ///
   /// In en, this message translates to:
   /// **'Generate Nonce'**
-  String get generateNonce;
+  String get generateNonceStep;
 
-  /// Send blinded nonce step
+  /// Send blinded nonce voting step
   ///
   /// In en, this message translates to:
   /// **'Send Blinded Nonce'**
-  String get sendBlindedNonce;
+  String get sendBlindedNonceStep;
 
-  /// Wait for signature step
+  /// Wait for signature voting step
   ///
   /// In en, this message translates to:
   /// **'Wait for Signature'**
-  String get waitForSignature;
+  String get waitForSignatureStep;
 
   /// Vote complete step
   ///
   /// In en, this message translates to:
   /// **'Vote Complete'**
-  String get voteComplete;
+  String get voteCompleteStep;
 
   /// Start voting process button
   ///
@@ -396,13 +348,13 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Vote Cast Successfully!'**
-  String get voteCastSuccessfully;
+  String get voteCastSuccess;
 
-  /// Vote recorded message
+  /// Vote recorded confirmation message
   ///
   /// In en, this message translates to:
   /// **'Your vote has been recorded anonymously.'**
-  String get voteRecordedAnonymously;
+  String get voteRecordedMessage;
 
   /// Return to elections button
   ///
@@ -410,101 +362,95 @@ abstract class AppLocalizations {
   /// **'Return to Elections'**
   String get returnToElections;
 
-  /// Election results title
+  /// Election results screen title
   ///
   /// In en, this message translates to:
   /// **'{name} - Results'**
-  String electionResults(String name);
+  String electionResultsTitle(String name);
 
   /// Pause updates tooltip
   ///
   /// In en, this message translates to:
   /// **'Pause Updates'**
-  String get pauseUpdates;
+  String get pauseUpdatesTooltip;
 
   /// Resume updates tooltip
   ///
   /// In en, this message translates to:
   /// **'Resume Updates'**
-  String get resumeUpdates;
+  String get resumeUpdatesTooltip;
 
-  /// Election summary section
+  /// Election summary section header
   ///
   /// In en, this message translates to:
   /// **'Election Summary'**
-  String get electionSummary;
+  String get electionSummarySection;
 
   /// Total votes label
   ///
   /// In en, this message translates to:
   /// **'Total Votes'**
-  String get totalVotes;
+  String get totalVotesLabel;
 
   /// Candidates label
   ///
   /// In en, this message translates to:
   /// **'Candidates'**
-  String get candidates;
+  String get candidatesLabel;
 
   /// Status label
   ///
   /// In en, this message translates to:
   /// **'Status'**
-  String get status;
+  String get statusLabel;
 
-  /// Live status
+  /// Live status indicator
   ///
   /// In en, this message translates to:
   /// **'Live'**
-  String get live;
+  String get liveStatus;
 
-  /// Paused status
+  /// Paused status indicator
   ///
   /// In en, this message translates to:
   /// **'Paused'**
-  String get paused;
+  String get pausedStatus;
 
   /// Results section header
   ///
   /// In en, this message translates to:
   /// **'Results'**
-  String get results;
-
-  /// Live updates label
-  ///
-  /// In en, this message translates to:
-  /// **'Live Updates'**
-  String get liveUpdates;
+  String get resultsSection;
 
   /// No votes recorded message
   ///
   /// In en, this message translates to:
   /// **'No votes recorded yet'**
-  String get noVotesRecorded;
+  String get noVotesRecordedYet;
 
   /// Just now time format
   ///
   /// In en, this message translates to:
   /// **'Just now'**
-  String get justNow;
+  String get timeFormatJustNow;
 
-  /// Minutes ago time format
+  /// Minutes ago format
   ///
   /// In en, this message translates to:
   /// **'{minutes}m ago'**
-  String minutesAgo(int minutes);
+  String timeFormatMinutesAgo(int minutes);
 
-  /// Hours ago time format
+  /// Hours ago format
   ///
   /// In en, this message translates to:
   /// **'{hours}h ago'**
-  String hoursAgo(int hours);
+  String timeFormatHoursAgo(int hours);
 
-  /// Last updated time
+  /// Last updated label with time
   ///
   /// In en, this message translates to:
   /// **'Last updated: {time}'**
-  String lastUpdated(String time);
+  String lastUpdatedLabel(String time);
 
   /// Settings screen title
   ///
@@ -608,12 +554,6 @@ abstract class AppLocalizations {
   /// **'Your seed phrase is your master key. Never share it with anyone. If you lose it, you cannot recover your identity. Store it safely offline.'**
   String get securityWarningText;
 
-  /// NIP-06 dialog title
-  ///
-  /// In en, this message translates to:
-  /// **'About NIP-06'**
-  String get nip06DialogTitle;
-
   /// NIP-06 description
   ///
   /// In en, this message translates to:
@@ -686,12 +626,6 @@ abstract class AppLocalizations {
   /// **'New keys generated successfully'**
   String get newKeysGenerated;
 
-  /// Candidates count label
-  ///
-  /// In en, this message translates to:
-  /// **'{count} candidates'**
-  String candidatesCountLabel(int count);
-
   /// Votes count
   ///
   /// In en, this message translates to:
@@ -703,168 +637,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Vote'**
   String get vote;
-
-  /// Votes label
-  ///
-  /// In en, this message translates to:
-  /// **'votes'**
-  String get votes;
-
-  /// Votes ratio display
-  ///
-  /// In en, this message translates to:
-  /// **'{votes} / {total}'**
-  String votesRatio(int votes, int total);
-
-  /// App not configured error
-  ///
-  /// In en, this message translates to:
-  /// **'App not configured. Please provide relay URL and EC public key.'**
-  String get appNotConfigured;
-
-  /// Election or candidate not selected error
-  ///
-  /// In en, this message translates to:
-  /// **'Election or candidate not selected.'**
-  String get electionOrCandidateNotSelected;
-
-  /// Failed to generate blind nonce error
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to generate and blind nonce: {error}'**
-  String failedToGenerateBlindNonce(String error);
-
-  /// Blinded nonce not generated error
-  ///
-  /// In en, this message translates to:
-  /// **'Blinded nonce not generated'**
-  String get blindedNonceNotGenerated;
-
-  /// Failed to send blinded nonce error
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to send blinded nonce: {error}'**
-  String failedToSendBlindedNonce(String error);
-
-  /// Timeout waiting for signature error
-  ///
-  /// In en, this message translates to:
-  /// **'Timeout waiting for blind signature'**
-  String get timeoutWaitingForSignature;
-
-  /// Failed to receive signature error
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to receive blind signature: {error}'**
-  String failedToReceiveSignature(String error);
-
-  /// Missing data for vote casting error
-  ///
-  /// In en, this message translates to:
-  /// **'Missing required data for vote casting'**
-  String get missingDataForVoteCasting;
-
-  /// Failed to cast vote error
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to cast vote: {error}'**
-  String failedToCastVote(String error);
-
-  /// Failed to load elections error
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to load elections: {error}'**
-  String failedToLoadElections(String error);
-
-  /// Error listening to results
-  ///
-  /// In en, this message translates to:
-  /// **'Error listening to results: {error}'**
-  String errorListeningToResults(String error);
-
-  /// Failed to start listening to results error
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to start listening to results: {error}'**
-  String failedToStartListeningResults(String error);
-
-  /// Generic error with message
-  ///
-  /// In en, this message translates to:
-  /// **'Error: {message}'**
-  String errorWithMessage(String message);
-
-  /// No active elections found description
-  ///
-  /// In en, this message translates to:
-  /// **'No active elections were found on the Nostr relay in the last 24 hours.'**
-  String get noActiveElectionsFound;
-
-  /// No candidates available message
-  ///
-  /// In en, this message translates to:
-  /// **'No candidates available for this election.'**
-  String get noCandidatesForElection;
-
-  /// Voting screen title
-  ///
-  /// In en, this message translates to:
-  /// **'Cast Vote'**
-  String get votingScreenTitle;
-
-  /// Your choice section header
-  ///
-  /// In en, this message translates to:
-  /// **'Your Choice'**
-  String get yourChoiceSection;
-
-  /// Vote cast success message
-  ///
-  /// In en, this message translates to:
-  /// **'Vote Cast Successfully!'**
-  String get voteCastSuccessMessage;
-
-  /// Last updated time
-  ///
-  /// In en, this message translates to:
-  /// **'Last updated: {time}'**
-  String lastUpdatedAt(String time);
-
-  /// Just now time format
-  ///
-  /// In en, this message translates to:
-  /// **'Just now'**
-  String get timeFormatJustNow;
-
-  /// Minutes ago format
-  ///
-  /// In en, this message translates to:
-  /// **'{minutes}m ago'**
-  String timeFormatMinutesAgo(int minutes);
-
-  /// Hours ago format
-  ///
-  /// In en, this message translates to:
-  /// **'{hours}h ago'**
-  String timeFormatHoursAgo(int hours);
-
-  /// Short candidates count
-  ///
-  /// In en, this message translates to:
-  /// **'{count} candidates'**
-  String candidatesCountShort(int count);
-
-  /// Election start time label
-  ///
-  /// In en, this message translates to:
-  /// **'Start: {time}'**
-  String electionStartLabel(String time);
-
-  /// Election end time label
-  ///
-  /// In en, this message translates to:
-  /// **'End: {time}'**
-  String electionEndLabel(String time);
 
   /// Votes label in singular/plural context
   ///
@@ -878,29 +650,11 @@ abstract class AppLocalizations {
   /// **'{votes} / {total}'**
   String voteRatioDisplay(int votes, int total);
 
-  /// Error when not connected to relay
+  /// Generic error with message
   ///
   /// In en, this message translates to:
-  /// **'Not connected to relay'**
-  String get notConnectedToRelay;
-
-  /// Failed to connect to relay error
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to connect to Nostr relay: {error}'**
-  String failedToConnectRelay(String error);
-
-  /// No votes recorded message
-  ///
-  /// In en, this message translates to:
-  /// **'No votes recorded yet'**
-  String get noVotesRecordedYet;
-
-  /// Live updates indicator
-  ///
-  /// In en, this message translates to:
-  /// **'Live Updates'**
-  String get liveUpdatesLabel;
+  /// **'Error: {message}'**
+  String errorWithMessage(String message);
 }
 
 class _AppLocalizationsDelegate
