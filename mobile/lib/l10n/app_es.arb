@@ -65,10 +65,10 @@
   "resultsSection": "Resultados",
   "noVotesRecordedYet": "Aún no se han registrado votos",
   "timeFormatJustNow": "Justo ahora",
-  "timeFormatMinutesAgo": "hace {minutes}m",
-  "timeFormatHoursAgo": "hace {hours}h",
+  "timeFormatMinutesAgo": "{minutes, plural, =1{hace 1 min} other{hace # min}}",
+  "timeFormatHoursAgo": "{hours, plural, =1{hace 1h} other{hace #h}}",
   "lastUpdatedLabel": "Última actualización: {time}",
-  
+
   "settings": "Ajustes",
   "errorLoadingKeys": "Error al cargar las claves",
   "noKeysAvailable": "No hay claves disponibles",

@@ -278,7 +278,7 @@
   "@timeFormatJustNow": {
     "description": "Just now time format"
   },
-  "timeFormatMinutesAgo": "{minutes}m ago",
+  "timeFormatMinutesAgo": "{minutes, plural, =1{1 min ago} other{# min ago}}",
   "@timeFormatMinutesAgo": {
     "description": "Minutes ago format",
     "placeholders": {
@@ -287,7 +287,7 @@
       }
     }
   },
-  "timeFormatHoursAgo": "{hours}h ago",
+  "timeFormatHoursAgo": "{hours, plural, =1{1h ago} other{#h ago}}",
   "@timeFormatHoursAgo": {
     "description": "Hours ago format",
     "placeholders": {
