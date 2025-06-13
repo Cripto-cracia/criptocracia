@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/election.dart';
+import '../generated/app_localizations.dart';
 
 class CandidateCard extends StatelessWidget {
   final Candidate candidate;
@@ -60,7 +61,7 @@ class CandidateCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${candidate.votes} votes',
+                            AppLocalizations.of(context).votesCount(candidate.votes),
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Theme.of(context).colorScheme.primary,
                               fontWeight: FontWeight.w500,
@@ -79,7 +80,7 @@ class CandidateCard extends StatelessWidget {
                 ElevatedButton.icon(
                   onPressed: onTap,
                   icon: const Icon(Icons.how_to_vote, size: 18),
-                  label: const Text('Vote'),
+                  label: Text(AppLocalizations.of(context).vote),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Theme.of(context).colorScheme.onPrimary,

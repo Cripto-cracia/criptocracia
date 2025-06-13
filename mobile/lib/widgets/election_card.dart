@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/election.dart';
+import '../generated/app_localizations.dart';
 
 class ElectionCard extends StatelessWidget {
   final Election election;
@@ -45,7 +46,7 @@ class ElectionCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '${election.candidates.length} candidates',
+                    AppLocalizations.of(context).candidatesCountShort(election.candidates.length),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(
                         context,
@@ -86,22 +87,22 @@ class ElectionCard extends StatelessWidget {
     switch (election.status.toLowerCase()) {
       case 'open':
         chipColor = Colors.orange;
-        label = 'Open';
+        label = AppLocalizations.of(context).statusOpen;
         icon = Icons.schedule;
         break;
       case 'in-progress':
         chipColor = Colors.green;
-        label = 'In Progress';
+        label = AppLocalizations.of(context).statusInProgress;
         icon = Icons.radio_button_checked;
         break;
       case 'finished':
         chipColor = Colors.blue;
-        label = 'Finished';
+        label = AppLocalizations.of(context).statusFinished;
         icon = Icons.check_circle_outline;
         break;
       case 'canceled':
         chipColor = Colors.red;
-        label = 'Canceled';
+        label = AppLocalizations.of(context).statusCanceled;
         icon = Icons.cancel_outlined;
         break;
       default:

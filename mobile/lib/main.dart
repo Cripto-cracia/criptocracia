@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'config/app_config.dart';
 import 'providers/election_provider.dart';
@@ -7,6 +8,7 @@ import 'screens/elections_screen.dart';
 import 'screens/results_screen.dart';
 import 'screens/settings_screen.dart';
 import 'services/nostr_key_manager.dart';
+import 'generated/app_localizations.dart';
 
 void main(List<String> args) {
   AppConfig.parseArguments(args);
@@ -25,6 +27,16 @@ class CriptocraciaApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'Criptocracia',
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('en'),
+          Locale('es'),
+        ],
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF03FFFE)),
           useMaterial3: true,
@@ -70,8 +82,8 @@ class _MainScreenState extends State<MainScreen> {
           if (provider.elections.isNotEmpty) {
             return ResultsScreen(election: provider.elections.first);
           }
-          return const Center(
-            child: Text('Select an election to view results'),
+          return Center(
+            child: Text(AppLocalizations.of(context).selectElectionToViewResults),
           );
         },
       ),
@@ -85,7 +97,7 @@ class _MainScreenState extends State<MainScreen> {
             IconButton(
               icon: const Icon(Icons.bug_report),
               onPressed: () => _showDebugInfo(),
-              tooltip: 'Debug Info',
+              tooltip: AppLocalizations.of(context).debugInfo,
             ),
         ],
       ),
@@ -94,12 +106,12 @@ class _MainScreenState extends State<MainScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.how_to_vote),
-            label: 'Elections',
+            icon: const Icon(Icons.how_to_vote),
+            label: AppLocalizations.of(context).navElections,
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.poll), label: 'Results'),
+          BottomNavigationBarItem(icon: const Icon(Icons.poll), label: AppLocalizations.of(context).navResults),
         ],
       ),
     );
@@ -125,14 +137,14 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Criptocracia',
+                  AppLocalizations.of(context).appTitle,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: Theme.of(context).colorScheme.onPrimary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
-                  'Trustless Electronic Voting',
+                  AppLocalizations.of(context).appSubtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(
                       context,
@@ -144,7 +156,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.how_to_vote),
-            title: const Text('Elections'),
+            title: Text(AppLocalizations.of(context).navElections),
             onTap: () {
               Navigator.pop(context);
               setState(() => _currentIndex = 0);
@@ -152,7 +164,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.poll),
-            title: const Text('Results'),
+            title: Text(AppLocalizations.of(context).navResults),
             onTap: () {
               Navigator.pop(context);
               setState(() => _currentIndex = 1);
@@ -161,7 +173,7 @@ class _MainScreenState extends State<MainScreen> {
           const Divider(),
           ListTile(
             leading: const Icon(Icons.settings),
-            title: const Text('Settings'),
+            title: Text(AppLocalizations.of(context).navSettings),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(
@@ -174,7 +186,7 @@ class _MainScreenState extends State<MainScreen> {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.bug_report),
-              title: const Text('Debug Info'),
+              title: Text(AppLocalizations.of(context).debugInfo),
               onTap: () {
                 Navigator.pop(context);
                 _showDebugInfo();
@@ -184,7 +196,7 @@ class _MainScreenState extends State<MainScreen> {
           const Divider(),
           ListTile(
             leading: const Icon(Icons.info_outline),
-            title: const Text('About'),
+            title: Text(AppLocalizations.of(context).navAbout),
             onTap: () {
               Navigator.pop(context);
               _showAppInfo();
@@ -199,21 +211,21 @@ class _MainScreenState extends State<MainScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Debug Information'),
+        title: Text(AppLocalizations.of(context).debugInformation),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Relay URL: ${AppConfig.relayUrl}'),
-            Text('EC Public Key: ${AppConfig.ecPublicKey}'),
-            Text('Debug Mode: ${AppConfig.debugMode}'),
-            Text('Configured: ${AppConfig.isConfigured}'),
+            Text(AppLocalizations.of(context).relayUrl(AppConfig.relayUrl)),
+            Text(AppLocalizations.of(context).ecPublicKey(AppConfig.ecPublicKey)),
+            Text(AppLocalizations.of(context).debugMode(AppConfig.debugMode.toString())),
+            Text(AppLocalizations.of(context).configured(AppConfig.isConfigured.toString())),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+            child: Text(AppLocalizations.of(context).close),
           ),
         ],
       ),
@@ -224,26 +236,26 @@ class _MainScreenState extends State<MainScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Criptocracia'),
-        content: const Column(
+        title: Text(AppLocalizations.of(context).appTitle),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'A trustless electronic voting system using blind RSA signatures and the Nostr protocol.',
+              AppLocalizations.of(context).aboutDescription,
             ),
-            SizedBox(height: 16),
-            Text('Features:'),
-            Text('• Anonymous voting with cryptographic proofs'),
-            Text('• Real-time results via Nostr'),
-            Text('• Decentralized vote collection'),
-            Text('• Tamper-evident vote counting'),
+            const SizedBox(height: 16),
+            Text(AppLocalizations.of(context).features),
+            Text(AppLocalizations.of(context).featureAnonymous),
+            Text(AppLocalizations.of(context).featureRealtime),
+            Text(AppLocalizations.of(context).featureDecentralized),
+            Text(AppLocalizations.of(context).featureTamperEvident),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+            child: Text(AppLocalizations.of(context).close),
           ),
         ],
       ),

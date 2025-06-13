@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/election.dart';
+import '../generated/app_localizations.dart';
 
 class ResultCard extends StatelessWidget {
   final Candidate candidate;
@@ -112,7 +113,7 @@ class ResultCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'votes',
+                      AppLocalizations.of(context).votesLabel,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                       ),
@@ -141,7 +142,7 @@ class ResultCard extends StatelessWidget {
                     ),
                     if (totalVotes > 0)
                       Text(
-                        '${candidate.votes} / $totalVotes',
+                        AppLocalizations.of(context).voteRatioDisplay(candidate.votes, totalVotes),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                         ),

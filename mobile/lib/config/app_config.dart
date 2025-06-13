@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class AppConfig {
   // Hardcoded configuration for mobile app
   static String relayUrl = 'wss://relay.mostro.network';
@@ -20,7 +22,7 @@ class AppConfig {
   }
   
   static void printHelp() {
-    print('''
+    debugPrint('''
 Criptocracia Voter App
 
 A mobile voting application using the Nostr protocol.
