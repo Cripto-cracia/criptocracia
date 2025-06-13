@@ -3,6 +3,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:bech32/bech32.dart';
 
 /// Service for managing Nostr keys following NIP-06 specification
 /// Generates mnemonic seed phrases and derives keys using m/44'/1237'/1989'/0/0 path
@@ -93,15 +94,52 @@ class NostrKeyManager {
   }
 
   /// Convert public key to npub format (Bech32 encoding with 'npub' prefix)
+  /// Implements NIP-19 specification for proper npub format
   static String publicKeyToNpub(Uint8List publicKey) {
     if (publicKey.length != 32) {
       throw ArgumentError('Public key must be 32 bytes');
     }
 
-    // Convert to full hex format 
-    // In production, you'd use proper Bech32 encoding, but for now show full hex
-    final hex = publicKey.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
-    return 'npub1$hex'; // Full npub display
+    // Use proper bech32 encoding as per NIP-19 specification
+    // Convert the 32-byte public key to 5-bit groups for bech32 encoding
+    final convertedData = convertBits(publicKey, 8, 5, true);
+    if (convertedData == null) {
+      throw ArgumentError('Failed to convert public key for bech32 encoding');
+    }
+
+    // Encode using bech32 with 'npub' prefix
+    return bech32.encode(Bech32('npub', convertedData));
+  }
+
+  /// Convert bits for bech32 encoding (helper function)
+  static List<int>? convertBits(List<int> data, int fromBits, int toBits, bool pad) {
+    int acc = 0;
+    int bits = 0;
+    List<int> result = [];
+    int maxv = (1 << toBits) - 1;
+    int maxAcc = (1 << (fromBits + toBits - 1)) - 1;
+
+    for (int value in data) {
+      if (value < 0 || value >> fromBits != 0) {
+        return null;
+      }
+      acc = ((acc << fromBits) | value) & maxAcc;
+      bits += fromBits;
+      while (bits >= toBits) {
+        bits -= toBits;
+        result.add((acc >> bits) & maxv);
+      }
+    }
+
+    if (pad) {
+      if (bits > 0) {
+        result.add((acc << (toBits - bits)) & maxv);
+      }
+    } else if (bits >= fromBits || ((acc << (toBits - bits)) & maxv) != 0) {
+      return null;
+    }
+
+    return result;
   }
 
   /// Get derived keys from stored mnemonic

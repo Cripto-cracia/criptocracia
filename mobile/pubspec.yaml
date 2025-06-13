@@ -65,6 +65,9 @@ dependencies:
   bip39: ^1.0.6
   ed25519_hd_key: ^2.2.0
   
+  # Bech32 encoding for NIP-19 npub format
+  bech32: ^0.2.2
+  
   # Secure storage
   flutter_secure_storage: ^9.2.2
   shared_preferences: ^2.3.3
