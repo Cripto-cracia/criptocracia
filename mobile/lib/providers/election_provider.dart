@@ -69,21 +69,26 @@ class ElectionProvider with ChangeNotifier {
               final election = Election.fromJson(content);
               debugPrint('✅ Created election: ${election.name} (${election.id})');
               
-              // Avoid duplicates by checking if election ID already exists
-              if (!_elections.any((e) => e.id == election.id)) {
-                // Add to elections list
-                _elections = [..._elections, election];
-                
-                // Stop loading if this is the first election
-                if (_isLoading) {
-                  _isLoading = false;
-                }
-                
-                notifyListeners();
-                debugPrint('📝 Added election to list. Total elections: ${_elections.length}');
+              // Update existing election or add new one
+              final existingIndex = _elections.indexWhere((e) => e.id == election.id);
+              if (existingIndex != -1) {
+                // Update existing election (status change, candidate updates, etc.)
+                _elections = [..._elections];
+                _elections[existingIndex] = election;
+                debugPrint('🔄 Updated existing election: ${election.name} - Status: ${election.status}');
               } else {
-                debugPrint('⚠️ Duplicate election ignored: ${election.id}');
+                // Add new election to the list
+                _elections = [..._elections, election];
+                debugPrint('📝 Added new election to list: ${election.name} - Status: ${election.status}');
               }
+              
+              // Stop loading if this is the first election or if we have elections
+              if (_isLoading && _elections.isNotEmpty) {
+                _isLoading = false;
+              }
+              
+              notifyListeners();
+              debugPrint('📊 Total elections: ${_elections.length}');
             } else {
               debugPrint('➡️ Skipping non-election event: kind=${event.kind}');
             }
