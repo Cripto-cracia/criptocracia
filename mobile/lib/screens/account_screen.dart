@@ -14,11 +14,16 @@ class _AccountScreenState extends State<AccountScreen> {
   Map<String, dynamic>? _keys;
   bool _isLoading = true;
   String? _error;
+  final TextEditingController _seedPhraseController = TextEditingController();
+  bool _isImporting = false;
 
   @override
   void initState() {
     super.initState();
     _loadKeys();
+    _seedPhraseController.addListener(() {
+      setState(() {}); // Rebuild to update button state
+    });
   }
 
   Future<void> _loadKeys() async {
@@ -51,6 +56,12 @@ class _AccountScreenState extends State<AccountScreen> {
         ),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    _seedPhraseController.dispose();
+    super.dispose();
   }
 
   @override
@@ -154,6 +165,8 @@ class _AccountScreenState extends State<AccountScreen> {
             subtitle: Text(AppLocalizations.of(context).aboutNip06Description),
             onTap: _showNip06Info,
           ),
+          const SizedBox(height: 16),
+          _buildImportSeedPhraseSection(),
         ],
       ),
     );
@@ -341,6 +354,163 @@ class _AccountScreenState extends State<AccountScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildImportSeedPhraseSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.download),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context).importSeedPhrase,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      Text(
+                        AppLocalizations.of(context).importSeedPhraseDescription,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _seedPhraseController,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).enterSeedPhrase,
+                hintText: AppLocalizations.of(context).seedPhraseHint,
+                border: const OutlineInputBorder(),
+                enabled: !_isImporting,
+              ),
+              maxLines: 3,
+              textInputAction: TextInputAction.done,
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isImporting || _seedPhraseController.text.trim().isEmpty
+                    ? null
+                    : _showImportConfirmation,
+                icon: _isImporting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.download),
+                label: Text(AppLocalizations.of(context).importButton),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.secondary,
+                  foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showImportConfirmation() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.warning,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(AppLocalizations.of(context).importSeedPhraseWarning),
+            ),
+          ],
+        ),
+        content: Text(AppLocalizations.of(context).importWarningMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(AppLocalizations.of(context).cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _importSeedPhrase();
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: Text(AppLocalizations.of(context).continueImport),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _importSeedPhrase() async {
+    final seedPhrase = _seedPhraseController.text.trim();
+    
+    if (seedPhrase.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _isImporting = true;
+      _error = null;
+    });
+
+    try {
+      // Import the new seed phrase
+      await NostrKeyManager.importMnemonic(seedPhrase);
+      
+      // Reload the keys to display the new identity
+      await _loadKeys();
+      
+      // Clear the input field
+      _seedPhraseController.clear();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).seedPhraseImportedSuccessfully),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().contains('Invalid') 
+                ? AppLocalizations.of(context).invalidSeedPhrase 
+                : AppLocalizations.of(context).errorWithMessage(e.toString())),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isImporting = false;
+        });
+      }
+    }
   }
 
   Future<void> _regenerateKeys() async {

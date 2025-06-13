@@ -433,6 +433,47 @@
     "description": "New keys generated success message"
   },
   
+  "importSeedPhrase": "Import Seed Phrase",
+  "@importSeedPhrase": {
+    "description": "Import seed phrase button"
+  },
+  "importSeedPhraseDescription": "Import an existing seed phrase to restore your identity",
+  "@importSeedPhraseDescription": {
+    "description": "Import seed phrase description"
+  },
+  "enterSeedPhrase": "Enter your seed phrase",
+  "@enterSeedPhrase": {
+    "description": "Seed phrase input label"
+  },
+  "seedPhraseHint": "Enter 12 or 24 words separated by spaces",
+  "@seedPhraseHint": {
+    "description": "Seed phrase input hint"
+  },
+  "importButton": "Import",
+  "@importButton": {
+    "description": "Import button text"
+  },
+  "importSeedPhraseWarning": "Import Seed Phrase Warning",
+  "@importSeedPhraseWarning": {
+    "description": "Import warning dialog title"
+  },
+  "importWarningMessage": "Importing a new seed phrase will replace your current identity. If your current seed phrase is not backed up, it will be lost forever. This action cannot be undone.",
+  "@importWarningMessage": {
+    "description": "Import warning message"
+  },
+  "continueImport": "Continue Import",
+  "@continueImport": {
+    "description": "Continue import button"
+  },
+  "invalidSeedPhrase": "Invalid seed phrase. Please check your words and try again.",
+  "@invalidSeedPhrase": {
+    "description": "Invalid seed phrase error message"
+  },
+  "seedPhraseImportedSuccessfully": "Seed phrase imported successfully!",
+  "@seedPhraseImportedSuccessfully": {
+    "description": "Seed phrase import success message"
+  },
+  
   "votesCount": "{count} votes",
   "@votesCount": {
     "description": "Votes count",

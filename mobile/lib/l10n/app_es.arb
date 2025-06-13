@@ -99,6 +99,17 @@
   "regenerate": "Regenerar",
   "newKeysGenerated": "Nuevas claves generadas exitosamente",
   
+  "importSeedPhrase": "Importar Frase Semilla",
+  "importSeedPhraseDescription": "Importa una frase semilla existente para restaurar tu identidad",
+  "enterSeedPhrase": "Ingresa tu frase semilla",
+  "seedPhraseHint": "Ingresa 12 o 24 palabras separadas por espacios",
+  "importButton": "Importar",
+  "importSeedPhraseWarning": "Advertencia de Importación de Frase Semilla",
+  "importWarningMessage": "Importar una nueva frase semilla reemplazará tu identidad actual. Si tu frase semilla actual no está respaldada, se perderá para siempre. Esta acción no se puede deshacer.",
+  "continueImport": "Continuar Importación",
+  "invalidSeedPhrase": "Frase semilla inválida. Por favor revisa las palabras e intenta de nuevo.",
+  "seedPhraseImportedSuccessfully": "¡Frase semilla importada exitosamente!",
+  
   "votesCount": "{count} votos",
   "vote": "Votar",
   "votesLabel": "votos",

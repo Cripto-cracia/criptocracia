@@ -143,6 +143,17 @@ class NostrKeyManager {
     }
   }
 
+  /// Import and store an existing mnemonic seed phrase
+  static Future<void> importMnemonic(String mnemonic) async {
+    // Validate the mnemonic first
+    if (!bip39.validateMnemonic(mnemonic.trim())) {
+      throw Exception('Invalid mnemonic seed phrase');
+    }
+    
+    // Store the validated mnemonic securely
+    await _secureStorage.write(key: _mnemonicKey, value: mnemonic.trim());
+  }
+
   /// Clear all stored keys (for testing or reset purposes)
   static Future<void> clearAllKeys() async {
     await _secureStorage.delete(key: _mnemonicKey);
