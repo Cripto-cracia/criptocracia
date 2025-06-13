@@ -1,6 +1,6 @@
-import 'dart:typed_data';
 import 'package:bip39/bip39.dart' as bip39;
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -134,10 +134,10 @@ class NostrKeyManager {
       final keys = await getDerivedKeys();
       // Use debugPrint instead of print to avoid linting issues in production
       assert(() {
-        print('🔑 Generated new Nostr mnemonic on first launch');
-        print('📱 Derivation path: $_derivationPath');
-        print('✅ Keys validated successfully');
-        print('🌐 npub: ${keys['npub']}');
+        debugPrint('🔑 Generated new Nostr mnemonic on first launch');
+        debugPrint('📱 Derivation path: $_derivationPath');
+        debugPrint('✅ Keys validated successfully');
+        debugPrint('🌐 npub: ${keys['npub']}');
         return true;
       }());
     }

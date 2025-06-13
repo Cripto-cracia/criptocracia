@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/nostr_key_manager.dart';
+import '../generated/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -45,7 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('$label copied to clipboard'),
+          content: Text(AppLocalizations.of(context).copiedToClipboard(label)),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -56,7 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(AppLocalizations.of(context).settings),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: _isLoading
@@ -73,7 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Error loading keys',
+                        AppLocalizations.of(context).errorLoadingKeys,
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       const SizedBox(height: 8),
@@ -85,7 +86,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _loadKeys,
-                        child: const Text('Retry'),
+                        child: Text(AppLocalizations.of(context).retry),
                       ),
                     ],
                   ),
@@ -96,7 +97,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildSettingsContent() {
     if (_keys == null) {
-      return const Center(child: Text('No keys available'));
+      return Center(child: Text(AppLocalizations.of(context).noKeysAvailable));
     }
 
     return SingleChildScrollView(
@@ -105,31 +106,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Nostr Identity Section
-          _buildSectionHeader('Nostr Identity'),
+          _buildSectionHeader(AppLocalizations.of(context).nostrIdentity),
           const SizedBox(height: 8),
           Text(
-            'Your Nostr identity is derived from your seed phrase using the derivation path: ${_keys!['derivationPath']}',
+            AppLocalizations.of(context).nostrIdentityDescription(_keys!['derivationPath']),
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 16),
 
           // NPub Card
           _buildKeyCard(
-            title: 'Public Key (npub)',
-            subtitle: 'Your Nostr public identifier',
+            title: AppLocalizations.of(context).publicKeyNpub,
+            subtitle: AppLocalizations.of(context).publicKeyDescription,
             value: _keys!['npub'],
             icon: Icons.public,
-            onTap: () => _copyToClipboard(_keys!['npub'], 'Public key'),
+            onTap: () => _copyToClipboard(_keys!['npub'], AppLocalizations.of(context).publicKeyNpub),
           ),
           const SizedBox(height: 16),
 
           // Seed Phrase Card
           _buildKeyCard(
-            title: 'Seed Phrase',
-            subtitle: 'Your recovery mnemonic (keep this secure!)',
+            title: AppLocalizations.of(context).seedPhrase,
+            subtitle: AppLocalizations.of(context).seedPhraseDescription,
             value: _keys!['mnemonic'],
             icon: Icons.security,
-            onTap: () => _copyToClipboard(_keys!['mnemonic'], 'Seed phrase'),
+            onTap: () => _copyToClipboard(_keys!['mnemonic'], AppLocalizations.of(context).seedPhrase),
             isSecret: true,
           ),
           const SizedBox(height: 24),
@@ -139,18 +140,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
 
           // Advanced Section
-          _buildSectionHeader('Advanced'),
+          _buildSectionHeader(AppLocalizations.of(context).advanced),
           const SizedBox(height: 8),
           ListTile(
             leading: const Icon(Icons.refresh),
-            title: const Text('Regenerate Keys'),
-            subtitle: const Text('Generate new seed phrase (will lose current identity)'),
+            title: Text(AppLocalizations.of(context).regenerateKeys),
+            subtitle: Text(AppLocalizations.of(context).regenerateKeysDescription),
             onTap: _showRegenerateConfirmation,
           ),
           ListTile(
             leading: const Icon(Icons.info_outline),
-            title: const Text('About NIP-06'),
-            subtitle: const Text('Learn about Nostr key derivation'),
+            title: Text(AppLocalizations.of(context).aboutNip06),
+            subtitle: Text(AppLocalizations.of(context).aboutNip06Description),
             onTap: _showNip06Info,
           ),
         ],
@@ -248,7 +249,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                'Security Warning',
+                AppLocalizations.of(context).securityWarning,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onErrorContainer,
                       fontWeight: FontWeight.bold,
@@ -258,7 +259,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Your seed phrase is your master key. Never share it with anyone. If you lose it, you cannot recover your identity. Store it safely offline.',
+            AppLocalizations.of(context).securityWarningText,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onErrorContainer,
                 ),
@@ -285,29 +286,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('About NIP-06'),
-        content: const SingleChildScrollView(
+        content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('NIP-06 defines how to derive Nostr keys from a mnemonic seed phrase.'),
-              SizedBox(height: 8),
-              Text('Derivation Path: m/44\'/1237\'/1989\'/0/0'),
-              SizedBox(height: 8),
-              Text('• 44\': BIP44 standard'),
-              Text('• 1237\': Nostr coin type'),
-              Text('• 1989\': Account index'),
-              Text('• 0: Change (external)'),
-              Text('• 0: Address index'),
-              SizedBox(height: 8),
-              Text('This ensures compatibility with other Nostr clients that follow NIP-06.'),
+              Text(AppLocalizations.of(context).nip06Description),
+              const SizedBox(height: 8),
+              Text(AppLocalizations.of(context).derivationPath),
+              const SizedBox(height: 8),
+              Text(AppLocalizations.of(context).derivationPathBip44),
+              Text(AppLocalizations.of(context).derivationPathCoinType),
+              Text(AppLocalizations.of(context).derivationPathAccount),
+              Text(AppLocalizations.of(context).derivationPathChange),
+              Text(AppLocalizations.of(context).derivationPathAddress),
+              const SizedBox(height: 8),
+              Text(AppLocalizations.of(context).nip06Compatibility),
             ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+            child: Text(AppLocalizations.of(context).close),
           ),
         ],
       ),
@@ -319,13 +320,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Regenerate Keys'),
-        content: const Text(
-          'This will generate a new seed phrase and delete your current identity. This action cannot be undone. Are you sure?',
+        content: Text(
+          AppLocalizations.of(context).regenerateKeysConfirmation,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -335,7 +336,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('Regenerate'),
+            child: Text(AppLocalizations.of(context).regenerate),
           ),
         ],
       ),
@@ -355,8 +356,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('New keys generated successfully'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).newKeysGenerated),
             backgroundColor: Colors.green,
           ),
         );

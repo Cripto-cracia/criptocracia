@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:dart_nostr/dart_nostr.dart';
 
 class NostrService {
@@ -11,16 +11,16 @@ class NostrService {
 
   Future<void> connect(String relayUrl) async {
     try {
-      print('🔗 Attempting to connect to Nostr relay: $relayUrl');
+      debugPrint('🔗 Attempting to connect to Nostr relay: $relayUrl');
 
       // Initialize dart_nostr with the relay
       await Nostr.instance.services.relays.init(relaysUrl: [relayUrl]);
 
       _connected = true;
-      print('✅ Successfully connected to Nostr relay: $relayUrl');
+      debugPrint('✅ Successfully connected to Nostr relay: $relayUrl');
     } catch (e) {
       _connected = false;
-      print('❌ Failed to connect to Nostr relay: $e');
+      debugPrint('❌ Failed to connect to Nostr relay: $e');
       throw Exception('Failed to connect to Nostr relay: $e');
     }
   }
@@ -35,9 +35,9 @@ class NostrService {
       await Nostr.instance.services.relays.disconnectFromRelays();
 
       _connected = false;
-      print('Disconnected from Nostr relays');
+      debugPrint('Disconnected from Nostr relays');
     } catch (e) {
-      print('Error disconnecting from Nostr relays: $e');
+      debugPrint('Error disconnecting from Nostr relays: $e');
     }
   }
 
@@ -48,7 +48,7 @@ class NostrService {
     Uint8List blindedNonce,
   ) async {
     if (!_connected) throw Exception('Not connected to relay');
-    print('Sending blinded nonce to EC: ${base64.encode(blindedNonce)}');
+    debugPrint('Sending blinded nonce to EC: ${base64.encode(blindedNonce)}');
   }
 
   Future<void> castVote(
@@ -57,7 +57,7 @@ class NostrService {
     Uint8List signature,
   ) async {
     if (!_connected) throw Exception('Not connected to relay');
-    print('Casting vote for candidate $candidateId in election $electionId');
+    debugPrint('Casting vote for candidate $candidateId in election $electionId');
   }
 
   Stream<NostrEvent> subscribeToElections() {
@@ -67,7 +67,7 @@ class NostrService {
 
     // Calculate DateTime for 24 hours ago
     final since = DateTime.now().subtract(const Duration(hours: 24));
-    print('📅 Looking for kind 35000 events since: $since');
+    debugPrint('📅 Looking for kind 35000 events since: $since');
 
     // Create request filter for kind 35000 events from last 24 hours
     final request = NostrRequest(
@@ -76,25 +76,25 @@ class NostrService {
       ],
     );
 
-    print('📡 Starting subscription for kind 35000 events...');
+    debugPrint('📡 Starting subscription for kind 35000 events...');
 
     // Start subscription using dart_nostr
     final nostrStream = Nostr.instance.services.relays.startEventsSubscription(
       request: request,
     );
 
-    print('🎯 Subscription started, waiting for events...');
+    debugPrint('🎯 Subscription started, waiting for events...');
 
     // Convert dart_nostr events to our NostrEvent format
     return nostrStream.stream
         .map((dartNostrEvent) {
-          print(
+          debugPrint(
             '📥 Received event: kind=${dartNostrEvent.kind}, id=${dartNostrEvent.id}',
           );
           return dartNostrEvent;
         })
         .where((dartNostrEvent) {
-          print(
+          debugPrint(
             '🔍 Filtering event: kind=${dartNostrEvent.kind}, hasContent=${dartNostrEvent.content != null}',
           );
           return dartNostrEvent.id != null &&
@@ -105,7 +105,7 @@ class NostrService {
               dartNostrEvent.sig != null;
         })
         .map((dartNostrEvent) {
-          print('✅ Processing valid event: ${dartNostrEvent.id}');
+          debugPrint('✅ Processing valid event: ${dartNostrEvent.id}');
           return NostrEvent(
             id: dartNostrEvent.id!,
             pubkey: dartNostrEvent.pubkey,
@@ -117,7 +117,7 @@ class NostrService {
           );
         })
         .handleError((error) {
-          print('🚨 Stream error: $error');
+          debugPrint('🚨 Stream error: $error');
         })
         .asBroadcastStream(); // Make it a broadcast stream to allow multiple listeners
   }

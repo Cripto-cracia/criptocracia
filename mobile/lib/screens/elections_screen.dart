@@ -4,6 +4,7 @@ import '../models/election.dart';
 import '../providers/election_provider.dart';
 import '../widgets/election_card.dart';
 import 'election_detail_screen.dart';
+import '../generated/app_localizations.dart';
 
 class ElectionsScreen extends StatefulWidget {
   const ElectionsScreen({super.key});
@@ -42,14 +43,14 @@ class _ElectionsScreenState extends State<ElectionsScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Error: ${provider.error}',
+                    AppLocalizations.of(context).errorWithMessage(provider.error!),
                     style: Theme.of(context).textTheme.bodyLarge,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => provider.loadElections(),
-                    child: const Text('Retry'),
+                    child: Text(AppLocalizations.of(context).retry),
                   ),
                 ],
               ),
@@ -70,7 +71,7 @@ class _ElectionsScreenState extends State<ElectionsScreen> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'No Elections Found',
+                      AppLocalizations.of(context).noElectionsFound,
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Theme.of(context).colorScheme.onSurface,
@@ -78,7 +79,7 @@ class _ElectionsScreenState extends State<ElectionsScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'No active elections were found on the Nostr relay in the last 24 hours.',
+                      AppLocalizations.of(context).noActiveElectionsFound,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),

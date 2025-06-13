@@ -4,6 +4,7 @@ import '../models/election.dart';
 import '../providers/voting_provider.dart';
 import '../widgets/candidate_card.dart';
 import 'voting_screen.dart';
+import '../generated/app_localizations.dart';
 
 class ElectionDetailScreen extends StatefulWidget {
   final Election election;
@@ -66,11 +67,11 @@ class _ElectionDetailScreenState extends State<ElectionDetailScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Start: ${_formatDateTime(widget.election.startTime)}',
+                                AppLocalizations.of(context).electionStartLabel(_formatDateTime(widget.election.startTime)),
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                               Text(
-                                'End: ${_formatDateTime(widget.election.endTime)}',
+                                AppLocalizations.of(context).electionEndLabel(_formatDateTime(widget.election.endTime)),
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ],
@@ -87,7 +88,7 @@ class _ElectionDetailScreenState extends State<ElectionDetailScreen> {
 
             // Candidates Section
             Text(
-              'Candidates (${widget.election.candidates.length})',
+              AppLocalizations.of(context).candidatesCount(widget.election.candidates.length),
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
@@ -96,11 +97,11 @@ class _ElectionDetailScreenState extends State<ElectionDetailScreen> {
             const SizedBox(height: 12),
 
             if (widget.election.candidates.isEmpty)
-              const Center(
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.all(32),
+                  padding: const EdgeInsets.all(32),
                   child: Text(
-                    'No candidates available for this election.',
+                    AppLocalizations.of(context).noCandidatesForElection,
                     style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                 ),
@@ -127,22 +128,22 @@ class _ElectionDetailScreenState extends State<ElectionDetailScreen> {
     switch (widget.election.status.toLowerCase()) {
       case 'open':
         chipColor = Colors.orange;
-        label = 'Open';
+        label = AppLocalizations.of(context).statusOpen;
         icon = Icons.schedule;
         break;
       case 'in-progress':
         chipColor = Colors.green;
-        label = 'In Progress';
+        label = AppLocalizations.of(context).statusInProgress;
         icon = Icons.radio_button_checked;
         break;
       case 'finished':
         chipColor = Colors.blue;
-        label = 'Finished';
+        label = AppLocalizations.of(context).statusFinished;
         icon = Icons.check_circle_outline;
         break;
       case 'canceled':
         chipColor = Colors.red;
-        label = 'Canceled';
+        label = AppLocalizations.of(context).statusCanceled;
         icon = Icons.cancel_outlined;
         break;
       default:
