@@ -493,4 +493,81 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get liveUpdatesLabel => 'Live Updates';
+
+  @override
+  String get electionSection => 'Election';
+
+  @override
+  String get votingProcessSection => 'Voting Process';
+
+  @override
+  String get generateNonceStep => 'Generate Nonce';
+
+  @override
+  String get sendBlindedNonceStep => 'Send Blinded Nonce';
+
+  @override
+  String get waitForSignatureStep => 'Wait for Signature';
+
+  @override
+  String get voteCompleteStep => 'Vote Complete';
+
+  @override
+  String get voteCastSuccess => 'Vote Cast Successfully!';
+
+  @override
+  String get voteRecordedMessage => 'Your vote has been recorded anonymously.';
+
+  @override
+  String electionResultsTitle(String name) {
+    return '$name - Results';
+  }
+
+  @override
+  String get pauseUpdatesTooltip => 'Pause Updates';
+
+  @override
+  String get resumeUpdatesTooltip => 'Resume Updates';
+
+  @override
+  String get electionSummarySection => 'Election Summary';
+
+  @override
+  String get totalVotesLabel => 'Total Votes';
+
+  @override
+  String get candidatesLabel => 'Candidates';
+
+  @override
+  String get statusLabel => 'Status';
+
+  @override
+  String get liveStatus => 'Live';
+
+  @override
+  String get pausedStatus => 'Paused';
+
+  @override
+  String get resultsSection => 'Results';
+
+  @override
+  String lastUpdatedLabel(String time) {
+    return 'Last updated: $time';
+  }
+
+  @override
+  String failedToSendBlindNonce(String error) {
+    return 'Failed to send blinded nonce: $error';
+  }
+
+  @override
+  String get timeoutWaitingSignature => 'Timeout waiting for blind signature';
+
+  @override
+  String get missingDataForVoting => 'Missing required data for vote casting';
+
+  @override
+  String errorListeningResults(String error) {
+    return 'Error listening to results: $error';
+  }
 }

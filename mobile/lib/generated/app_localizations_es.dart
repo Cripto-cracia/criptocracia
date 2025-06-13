@@ -223,7 +223,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get results => 'Resultados';
 
   @override
-  String get liveUpdates => 'Actualizaciones en Vivo';
+  String get liveUpdates => 'En Vivo';
 
   @override
   String get noVotesRecorded => 'Aún no se han registrado votos';
@@ -497,5 +497,83 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noVotesRecordedYet => 'Aún no se han registrado votos';
 
   @override
-  String get liveUpdatesLabel => 'Actualizaciones en Vivo';
+  String get liveUpdatesLabel => 'En Vivo';
+
+  @override
+  String get electionSection => 'Elección';
+
+  @override
+  String get votingProcessSection => 'Proceso de Votación';
+
+  @override
+  String get generateNonceStep => 'Generar Nonce';
+
+  @override
+  String get sendBlindedNonceStep => 'Enviar Nonce Ciego';
+
+  @override
+  String get waitForSignatureStep => 'Esperar Firma';
+
+  @override
+  String get voteCompleteStep => 'Voto Completo';
+
+  @override
+  String get voteCastSuccess => '¡Voto Emitido Exitosamente!';
+
+  @override
+  String get voteRecordedMessage => 'Tu voto ha sido registrado anónimamente.';
+
+  @override
+  String electionResultsTitle(String name) {
+    return '$name - Resultados';
+  }
+
+  @override
+  String get pauseUpdatesTooltip => 'Pausar Actualizaciones';
+
+  @override
+  String get resumeUpdatesTooltip => 'Reanudar Actualizaciones';
+
+  @override
+  String get electionSummarySection => 'Resumen';
+
+  @override
+  String get totalVotesLabel => 'Total de Votos';
+
+  @override
+  String get candidatesLabel => 'Candidatos';
+
+  @override
+  String get statusLabel => 'Estado';
+
+  @override
+  String get liveStatus => 'En Vivo';
+
+  @override
+  String get pausedStatus => 'Pausado';
+
+  @override
+  String get resultsSection => 'Resultados';
+
+  @override
+  String lastUpdatedLabel(String time) {
+    return 'Última actualización: $time';
+  }
+
+  @override
+  String failedToSendBlindNonce(String error) {
+    return 'Error al enviar nonce ciego: $error';
+  }
+
+  @override
+  String get timeoutWaitingSignature => 'Tiempo agotado esperando firma ciega';
+
+  @override
+  String get missingDataForVoting =>
+      'Faltan datos requeridos para emitir el voto';
+
+  @override
+  String errorListeningResults(String error) {
+    return 'Error al escuchar resultados: $error';
+  }
 }

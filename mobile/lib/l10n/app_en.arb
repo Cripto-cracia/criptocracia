@@ -720,5 +720,152 @@
   "liveUpdatesLabel": "Live Updates",
   "@liveUpdatesLabel": {
     "description": "Live updates indicator"
+  },
+  
+  "electionSection": "Election",
+  "@electionSection": {
+    "description": "Election section header"
+  },
+  "votingProcessSection": "Voting Process",
+  "@votingProcessSection": {
+    "description": "Voting process section header"
+  },
+  "generateNonceStep": "Generate Nonce",
+  "@generateNonceStep": {
+    "description": "Generate nonce voting step"
+  },
+  "sendBlindedNonceStep": "Send Blinded Nonce",
+  "@sendBlindedNonceStep": {
+    "description": "Send blinded nonce voting step"
+  },
+  "waitForSignatureStep": "Wait for Signature",
+  "@waitForSignatureStep": {
+    "description": "Wait for signature voting step"
+  },
+  "voteCompleteStep": "Vote Complete",
+  "@voteCompleteStep": {
+    "description": "Vote complete step"
+  },
+  "startVotingProcess": "Start Voting Process",
+  "@startVotingProcess": {
+    "description": "Start voting process button"
+  },
+  "voteCastSuccess": "Vote Cast Successfully!",
+  "@voteCastSuccess": {
+    "description": "Vote cast success message"
+  },
+  "voteRecordedMessage": "Your vote has been recorded anonymously.",
+  "@voteRecordedMessage": {
+    "description": "Vote recorded confirmation message"
+  },
+  "returnToElections": "Return to Elections",
+  "@returnToElections": {
+    "description": "Return to elections button"
+  },
+  "electionResultsTitle": "{name} - Results",
+  "@electionResultsTitle": {
+    "description": "Election results screen title",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pauseUpdatesTooltip": "Pause Updates",
+  "@pauseUpdatesTooltip": {
+    "description": "Pause updates tooltip"
+  },
+  "resumeUpdatesTooltip": "Resume Updates",
+  "@resumeUpdatesTooltip": {
+    "description": "Resume updates tooltip"
+  },
+  "electionSummarySection": "Election Summary",
+  "@electionSummarySection": {
+    "description": "Election summary section header"
+  },
+  "totalVotesLabel": "Total Votes",
+  "@totalVotesLabel": {
+    "description": "Total votes label"
+  },
+  "candidatesLabel": "Candidates",
+  "@candidatesLabel": {
+    "description": "Candidates label"
+  },
+  "statusLabel": "Status",
+  "@statusLabel": {
+    "description": "Status label"
+  },
+  "liveStatus": "Live",
+  "@liveStatus": {
+    "description": "Live status indicator"
+  },
+  "pausedStatus": "Paused",
+  "@pausedStatus": {
+    "description": "Paused status indicator"
+  },
+  "resultsSection": "Results",
+  "@resultsSection": {
+    "description": "Results section header"
+  },
+  "lastUpdatedLabel": "Last updated: {time}",
+  "@lastUpdatedLabel": {
+    "description": "Last updated label with time",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "electionOrCandidateNotSelected": "Election or candidate not selected.",
+  "@electionOrCandidateNotSelected": {
+    "description": "Election or candidate not selected error"
+  },
+  "failedToGenerateBlindNonce": "Failed to generate and blind nonce: {error}",
+  "@failedToGenerateBlindNonce": {
+    "description": "Failed to generate blind nonce error",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "blindedNonceNotGenerated": "Blinded nonce not generated",
+  "@blindedNonceNotGenerated": {
+    "description": "Blinded nonce not generated error"
+  },
+  "failedToSendBlindNonce": "Failed to send blinded nonce: {error}",
+  "@failedToSendBlindNonce": {
+    "description": "Failed to send blinded nonce error",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "timeoutWaitingSignature": "Timeout waiting for blind signature",
+  "@timeoutWaitingSignature": {
+    "description": "Timeout waiting for signature error"
+  },
+  "failedToReceiveSignature": "Failed to receive blind signature: {error}",
+  "@failedToReceiveSignature": {
+    "description": "Failed to receive signature error",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "missingDataForVoting": "Missing required data for vote casting",
+  "@missingDataForVoting": {
+    "description": "Missing data for voting error"
+  },
+  "errorListeningResults": "Error listening to results: {error}",
+  "@errorListeningResults": {
+    "description": "Error listening to results",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   }
 }

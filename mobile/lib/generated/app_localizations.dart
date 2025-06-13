@@ -901,6 +901,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Live Updates'**
   String get liveUpdatesLabel;
+
+  /// Election section header
+  ///
+  /// In en, this message translates to:
+  /// **'Election'**
+  String get electionSection;
+
+  /// Voting process section header
+  ///
+  /// In en, this message translates to:
+  /// **'Voting Process'**
+  String get votingProcessSection;
+
+  /// Generate nonce voting step
+  ///
+  /// In en, this message translates to:
+  /// **'Generate Nonce'**
+  String get generateNonceStep;
+
+  /// Send blinded nonce voting step
+  ///
+  /// In en, this message translates to:
+  /// **'Send Blinded Nonce'**
+  String get sendBlindedNonceStep;
+
+  /// Wait for signature voting step
+  ///
+  /// In en, this message translates to:
+  /// **'Wait for Signature'**
+  String get waitForSignatureStep;
+
+  /// Vote complete step
+  ///
+  /// In en, this message translates to:
+  /// **'Vote Complete'**
+  String get voteCompleteStep;
+
+  /// Vote cast success message
+  ///
+  /// In en, this message translates to:
+  /// **'Vote Cast Successfully!'**
+  String get voteCastSuccess;
+
+  /// Vote recorded confirmation message
+  ///
+  /// In en, this message translates to:
+  /// **'Your vote has been recorded anonymously.'**
+  String get voteRecordedMessage;
+
+  /// Election results screen title
+  ///
+  /// In en, this message translates to:
+  /// **'{name} - Results'**
+  String electionResultsTitle(String name);
+
+  /// Pause updates tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Pause Updates'**
+  String get pauseUpdatesTooltip;
+
+  /// Resume updates tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Resume Updates'**
+  String get resumeUpdatesTooltip;
+
+  /// Election summary section header
+  ///
+  /// In en, this message translates to:
+  /// **'Election Summary'**
+  String get electionSummarySection;
+
+  /// Total votes label
+  ///
+  /// In en, this message translates to:
+  /// **'Total Votes'**
+  String get totalVotesLabel;
+
+  /// Candidates label
+  ///
+  /// In en, this message translates to:
+  /// **'Candidates'**
+  String get candidatesLabel;
+
+  /// Status label
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get statusLabel;
+
+  /// Live status indicator
+  ///
+  /// In en, this message translates to:
+  /// **'Live'**
+  String get liveStatus;
+
+  /// Paused status indicator
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get pausedStatus;
+
+  /// Results section header
+  ///
+  /// In en, this message translates to:
+  /// **'Results'**
+  String get resultsSection;
+
+  /// Last updated label with time
+  ///
+  /// In en, this message translates to:
+  /// **'Last updated: {time}'**
+  String lastUpdatedLabel(String time);
+
+  /// Failed to send blinded nonce error
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send blinded nonce: {error}'**
+  String failedToSendBlindNonce(String error);
+
+  /// Timeout waiting for signature error
+  ///
+  /// In en, this message translates to:
+  /// **'Timeout waiting for blind signature'**
+  String get timeoutWaitingSignature;
+
+  /// Missing data for voting error
+  ///
+  /// In en, this message translates to:
+  /// **'Missing required data for vote casting'**
+  String get missingDataForVoting;
+
+  /// Error listening to results
+  ///
+  /// In en, this message translates to:
+  /// **'Error listening to results: {error}'**
+  String errorListeningResults(String error);
 }
 
 class _AppLocalizationsDelegate
