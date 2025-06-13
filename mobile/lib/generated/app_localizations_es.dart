@@ -107,7 +107,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String candidatesCountShort(int count) {
-    return '$count candidatos';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '# candidatos',
+      one: '1 candidato',
+      zero: 'No hay candidatos',
+    );
+    return '$_temp0';
   }
 
   @override

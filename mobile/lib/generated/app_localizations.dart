@@ -257,7 +257,7 @@ abstract class AppLocalizations {
   /// Short candidates count
   ///
   /// In en, this message translates to:
-  /// **'{count} candidates'**
+  /// **'{count, plural, =0{No candidates} =1{1 candidate} other{# candidates}}'**
   String candidatesCountShort(int count);
 
   /// No candidates available message

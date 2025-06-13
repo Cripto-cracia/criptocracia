@@ -145,7 +145,7 @@
       }
     }
   },
-  "candidatesCountShort": "{count} candidates",
+  "candidatesCountShort": "{count, plural, =0{No candidates} =1{1 candidate} other{# candidates}}",
   "@candidatesCountShort": {
     "description": "Short candidates count",
     "placeholders": {
