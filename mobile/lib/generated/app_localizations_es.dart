@@ -81,54 +81,22 @@ class AppLocalizationsEs extends AppLocalizations {
       '• Conteo de votos a prueba de manipulación';
 
   @override
-  String get criptocraciaVoterApp => 'App de Votación Criptocracia';
-
-  @override
-  String get mobileVotingAppDescription =>
-      'Una aplicación móvil de votación que utiliza el protocolo Nostr.';
-
-  @override
-  String get configuration => 'Configuración:';
-
-  @override
-  String get usage => 'Uso: flutter run -- [OPCIONES]';
-
-  @override
-  String get options => 'Opciones:';
-
-  @override
-  String get debugModeOption =>
-      '-d, --debug               Habilitar modo depuración';
-
-  @override
-  String get helpOption =>
-      '-h, --help                Mostrar este mensaje de ayuda';
-
-  @override
-  String get examples => 'Ejemplos:';
-
-  @override
-  String error(String message) {
-    return 'Error: $message';
-  }
-
-  @override
   String get retry => 'Reintentar';
 
   @override
   String get noElectionsFound => 'No se Encontraron Elecciones';
 
   @override
-  String get noElectionsFoundDescription =>
+  String get noActiveElectionsFound =>
       'No se encontraron elecciones activas en el relay Nostr en las últimas 24 horas.';
 
   @override
-  String startTime(String time) {
+  String electionStartLabel(String time) {
     return 'Inicio: $time';
   }
 
   @override
-  String endTime(String time) {
+  String electionEndLabel(String time) {
     return 'Fin: $time';
   }
 
@@ -138,7 +106,12 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get noCandidatesAvailable =>
+  String candidatesCountShort(int count) {
+    return '$count candidatos';
+  }
+
+  @override
+  String get noCandidatesForElection =>
       'No hay candidatos disponibles para esta elección.';
 
   @override
@@ -157,92 +130,88 @@ class AppLocalizationsEs extends AppLocalizations {
   String get castVote => 'Emitir Voto';
 
   @override
-  String get election => 'Elección';
+  String get electionSection => 'Elección';
 
   @override
-  String get yourChoice => 'Tu Elección';
+  String get yourChoiceSection => 'Tu Elección';
 
   @override
-  String get votingProcess => 'Proceso de Votación';
+  String get votingProcessSection => 'Proceso de Votación';
 
   @override
-  String get generateNonce => 'Generar Nonce';
+  String get generateNonceStep => 'Generar Nonce';
 
   @override
-  String get sendBlindedNonce => 'Enviar Nonce Ciego';
+  String get sendBlindedNonceStep => 'Enviar Nonce Ciego';
 
   @override
-  String get waitForSignature => 'Esperar Firma';
+  String get waitForSignatureStep => 'Esperar Firma';
 
   @override
-  String get voteComplete => 'Voto Completo';
+  String get voteCompleteStep => 'Voto Completo';
 
   @override
   String get startVotingProcess => 'Iniciar Proceso de Votación';
 
   @override
-  String get voteCastSuccessfully => '¡Voto Emitido Exitosamente!';
+  String get voteCastSuccess => '¡Voto Emitido Exitosamente!';
 
   @override
-  String get voteRecordedAnonymously =>
-      'Tu voto ha sido registrado anónimamente.';
+  String get voteRecordedMessage => 'Tu voto ha sido registrado anónimamente.';
 
   @override
   String get returnToElections => 'Volver a Elecciones';
 
   @override
-  String electionResults(String name) {
+  String electionResultsTitle(String name) {
     return '$name - Resultados';
   }
 
   @override
-  String get pauseUpdates => 'Pausar Actualizaciones';
+  String get pauseUpdatesTooltip => 'Pausar Actualizaciones';
 
   @override
-  String get resumeUpdates => 'Reanudar Actualizaciones';
+  String get resumeUpdatesTooltip => 'Reanudar Actualizaciones';
 
   @override
-  String get electionSummary => 'Resumen de la Elección';
+  String get electionSummarySection => 'Resumen de la Elección';
 
   @override
-  String get totalVotes => 'Total de Votos';
+  String get totalVotesLabel => 'Total de Votos';
 
   @override
-  String get candidates => 'Candidatos';
+  String get candidatesLabel => 'Candidatos';
 
   @override
-  String get status => 'Estado';
+  String get statusLabel => 'Estado';
 
   @override
-  String get live => 'En Vivo';
+  String get liveStatus => 'En Vivo';
 
   @override
-  String get paused => 'Pausado';
+  String get pausedStatus => 'Pausado';
 
   @override
-  String get results => 'Resultados';
+  String get resultsSection => 'Resultados';
 
   @override
-  String get liveUpdates => 'En Vivo';
+  String get noVotesRecordedYet => 'Aún no se han registrado votos';
 
   @override
-  String get noVotesRecorded => 'Aún no se han registrado votos';
+  String get timeFormatJustNow => 'Justo ahora';
 
   @override
-  String get justNow => 'Justo ahora';
-
-  @override
-  String minutesAgo(int minutes) {
+  String timeFormatMinutesAgo(int minutes) {
     return 'hace ${minutes}m';
   }
 
   @override
-  String hoursAgo(int hours) {
+  String timeFormatHoursAgo(int hours) {
     return 'hace ${hours}h';
   }
 
   @override
-  String lastUpdated(String time) {
+  String lastUpdatedLabel(String time) {
     return 'Última actualización: $time';
   }
 
@@ -306,9 +275,6 @@ class AppLocalizationsEs extends AppLocalizations {
       'Tu frase semilla es tu clave maestra. Nunca la compartas con nadie. Si la pierdes, no podrás recuperar tu identidad. Guárdala de forma segura sin conexión.';
 
   @override
-  String get nip06DialogTitle => 'Acerca de NIP-06';
-
-  @override
   String get nip06Description =>
       'NIP-06 define cómo derivar claves Nostr desde una frase semilla mnemónica.';
 
@@ -348,134 +314,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get newKeysGenerated => 'Nuevas claves generadas exitosamente';
 
   @override
-  String candidatesCountLabel(int count) {
-    return '$count candidatos';
-  }
-
-  @override
   String votesCount(int count) {
     return '$count votos';
   }
 
   @override
   String get vote => 'Votar';
-
-  @override
-  String get votes => 'votos';
-
-  @override
-  String votesRatio(int votes, int total) {
-    return '$votes / $total';
-  }
-
-  @override
-  String get appNotConfigured =>
-      'App no configurada. Por favor proporciona la URL del relay y la clave pública EC.';
-
-  @override
-  String get electionOrCandidateNotSelected =>
-      'Elección o candidato no seleccionado.';
-
-  @override
-  String failedToGenerateBlindNonce(String error) {
-    return 'Error al generar y cegar nonce: $error';
-  }
-
-  @override
-  String get blindedNonceNotGenerated => 'Nonce ciego no generado';
-
-  @override
-  String failedToSendBlindedNonce(String error) {
-    return 'Error al enviar nonce ciego: $error';
-  }
-
-  @override
-  String get timeoutWaitingForSignature =>
-      'Tiempo agotado esperando firma ciega';
-
-  @override
-  String failedToReceiveSignature(String error) {
-    return 'Error al recibir firma ciega: $error';
-  }
-
-  @override
-  String get missingDataForVoteCasting =>
-      'Faltan datos requeridos para emitir el voto';
-
-  @override
-  String failedToCastVote(String error) {
-    return 'Error al emitir voto: $error';
-  }
-
-  @override
-  String failedToLoadElections(String error) {
-    return 'Error al cargar elecciones: $error';
-  }
-
-  @override
-  String errorListeningToResults(String error) {
-    return 'Error al escuchar resultados: $error';
-  }
-
-  @override
-  String failedToStartListeningResults(String error) {
-    return 'Error al comenzar a escuchar resultados: $error';
-  }
-
-  @override
-  String errorWithMessage(String message) {
-    return 'Error: $message';
-  }
-
-  @override
-  String get noActiveElectionsFound =>
-      'No se encontraron elecciones activas en el relay Nostr en las últimas 24 horas.';
-
-  @override
-  String get noCandidatesForElection =>
-      'No hay candidatos disponibles para esta elección.';
-
-  @override
-  String get votingScreenTitle => 'Emitir Voto';
-
-  @override
-  String get yourChoiceSection => 'Tu Elección';
-
-  @override
-  String get voteCastSuccessMessage => '¡Voto Emitido Exitosamente!';
-
-  @override
-  String lastUpdatedAt(String time) {
-    return 'Última actualización: $time';
-  }
-
-  @override
-  String get timeFormatJustNow => 'Justo ahora';
-
-  @override
-  String timeFormatMinutesAgo(int minutes) {
-    return 'hace ${minutes}m';
-  }
-
-  @override
-  String timeFormatHoursAgo(int hours) {
-    return 'hace ${hours}h';
-  }
-
-  @override
-  String candidatesCountShort(int count) {
-    return '$count candidatos';
-  }
-
-  @override
-  String electionStartLabel(String time) {
-    return 'Inicio: $time';
-  }
-
-  @override
-  String electionEndLabel(String time) {
-    return 'Fin: $time';
-  }
 
   @override
   String get votesLabel => 'votos';
@@ -486,94 +330,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get notConnectedToRelay => 'No conectado al relay';
-
-  @override
-  String failedToConnectRelay(String error) {
-    return 'Error al conectar con el relay Nostr: $error';
-  }
-
-  @override
-  String get noVotesRecordedYet => 'Aún no se han registrado votos';
-
-  @override
-  String get liveUpdatesLabel => 'En Vivo';
-
-  @override
-  String get electionSection => 'Elección';
-
-  @override
-  String get votingProcessSection => 'Proceso de Votación';
-
-  @override
-  String get generateNonceStep => 'Generar Nonce';
-
-  @override
-  String get sendBlindedNonceStep => 'Enviar Nonce Ciego';
-
-  @override
-  String get waitForSignatureStep => 'Esperar Firma';
-
-  @override
-  String get voteCompleteStep => 'Voto Completo';
-
-  @override
-  String get voteCastSuccess => '¡Voto Emitido Exitosamente!';
-
-  @override
-  String get voteRecordedMessage => 'Tu voto ha sido registrado anónimamente.';
-
-  @override
-  String electionResultsTitle(String name) {
-    return '$name - Resultados';
-  }
-
-  @override
-  String get pauseUpdatesTooltip => 'Pausar Actualizaciones';
-
-  @override
-  String get resumeUpdatesTooltip => 'Reanudar Actualizaciones';
-
-  @override
-  String get electionSummarySection => 'Resumen';
-
-  @override
-  String get totalVotesLabel => 'Total de Votos';
-
-  @override
-  String get candidatesLabel => 'Candidatos';
-
-  @override
-  String get statusLabel => 'Estado';
-
-  @override
-  String get liveStatus => 'En Vivo';
-
-  @override
-  String get pausedStatus => 'Pausado';
-
-  @override
-  String get resultsSection => 'Resultados';
-
-  @override
-  String lastUpdatedLabel(String time) {
-    return 'Última actualización: $time';
-  }
-
-  @override
-  String failedToSendBlindNonce(String error) {
-    return 'Error al enviar nonce ciego: $error';
-  }
-
-  @override
-  String get timeoutWaitingSignature => 'Tiempo agotado esperando firma ciega';
-
-  @override
-  String get missingDataForVoting =>
-      'Faltan datos requeridos para emitir el voto';
-
-  @override
-  String errorListeningResults(String error) {
-    return 'Error al escuchar resultados: $error';
+  String errorWithMessage(String message) {
+    return 'Error: $message';
   }
 }

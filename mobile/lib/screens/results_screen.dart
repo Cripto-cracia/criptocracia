@@ -8,10 +8,7 @@ import '../generated/app_localizations.dart';
 class ResultsScreen extends StatefulWidget {
   final Election election;
 
-  const ResultsScreen({
-    super.key,
-    required this.election,
-  });
+  const ResultsScreen({super.key, required this.election});
 
   @override
   State<ResultsScreen> createState() => _ResultsScreenState();
@@ -30,7 +27,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).electionResultsTitle(widget.election.name)),
+        title: Text(
+          AppLocalizations.of(
+            context,
+          ).electionResultsTitle(widget.election.name),
+        ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           Consumer<ResultsProvider>(
@@ -46,7 +47,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     provider.startListening(widget.election.id);
                   }
                 },
-                tooltip: provider.isListening ? AppLocalizations.of(context).pauseUpdatesTooltip : AppLocalizations.of(context).resumeUpdatesTooltip,
+                tooltip: provider.isListening
+                    ? AppLocalizations.of(context).pauseUpdatesTooltip
+                    : AppLocalizations.of(context).resumeUpdatesTooltip,
               );
             },
           ),
@@ -55,9 +58,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
       body: Consumer<ResultsProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.results.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (provider.error != null) {
@@ -72,13 +73,16 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    AppLocalizations.of(context).errorWithMessage(provider.error!),
+                    AppLocalizations.of(
+                      context,
+                    ).errorWithMessage(provider.error!),
                     style: Theme.of(context).textTheme.bodyLarge,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => provider.startListening(widget.election.id),
+                    onPressed: () =>
+                        provider.startListening(widget.election.id),
                     child: Text(AppLocalizations.of(context).retry),
                   ),
                 ],
@@ -112,10 +116,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                AppLocalizations.of(context).electionSummarySection,
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                AppLocalizations.of(
+                                  context,
+                                ).electionSummarySection,
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
@@ -138,8 +143,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
                               _buildSummaryItem(
                                 context,
                                 AppLocalizations.of(context).statusLabel,
-                                provider.isListening ? AppLocalizations.of(context).liveStatus : AppLocalizations.of(context).pausedStatus,
-                                provider.isListening ? Icons.radio_button_checked : Icons.pause,
+                                provider.isListening
+                                    ? AppLocalizations.of(context).liveStatus
+                                    : AppLocalizations.of(context).pausedStatus,
+                                provider.isListening
+                                    ? Icons.radio_button_checked
+                                    : Icons.pause,
                               ),
                             ],
                           ),
@@ -155,9 +164,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     children: [
                       Text(
                         AppLocalizations.of(context).resultsSection,
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const Spacer(),
                       if (provider.isListening)
@@ -175,11 +183,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              AppLocalizations.of(context).liveUpdatesLabel,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.green,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              AppLocalizations.of(context).liveStatus,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                             ),
                           ],
                         ),
@@ -213,11 +222,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     )
                   else
                     ...candidates.map((candidate) {
-                      final percentage = totalVotes > 0 
+                      final percentage = totalVotes > 0
                           ? (candidate.votes / totalVotes * 100)
                           : 0.0;
                       final rank = candidates.indexOf(candidate) + 1;
-                      
+
                       return ResultCard(
                         candidate: candidate,
                         totalVotes: totalVotes,
@@ -233,9 +242,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   if (provider.lastUpdate != null)
                     Center(
                       child: Text(
-                        AppLocalizations.of(context).lastUpdatedLabel(_formatLastUpdate(provider.lastUpdate!)),
+                        AppLocalizations.of(context).lastUpdatedLabel(
+                          _formatLastUpdate(provider.lastUpdate!),
+                        ),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.6),
                         ),
                       ),
                     ),
@@ -248,14 +261,15 @@ class _ResultsScreenState extends State<ResultsScreen> {
     );
   }
 
-  Widget _buildSummaryItem(BuildContext context, String label, String value, IconData icon) {
+  Widget _buildSummaryItem(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+  ) {
     return Column(
       children: [
-        Icon(
-          icon,
-          color: Theme.of(context).colorScheme.primary,
-          size: 24,
-        ),
+        Icon(icon, color: Theme.of(context).colorScheme.primary, size: 24),
         const SizedBox(height: 4),
         Text(
           value,
@@ -277,13 +291,17 @@ class _ResultsScreenState extends State<ResultsScreen> {
   String _formatLastUpdate(DateTime lastUpdate) {
     final now = DateTime.now();
     final difference = now.difference(lastUpdate);
-    
+
     if (difference.inSeconds < 60) {
       return AppLocalizations.of(context).timeFormatJustNow;
     } else if (difference.inMinutes < 60) {
-      return AppLocalizations.of(context).timeFormatMinutesAgo(difference.inMinutes);
+      return AppLocalizations.of(
+        context,
+      ).timeFormatMinutesAgo(difference.inMinutes);
     } else if (difference.inHours < 24) {
-      return AppLocalizations.of(context).timeFormatHoursAgo(difference.inHours);
+      return AppLocalizations.of(
+        context,
+      ).timeFormatHoursAgo(difference.inHours);
     } else {
       return '${lastUpdate.day}/${lastUpdate.month} ${lastUpdate.hour}:${lastUpdate.minute.toString().padLeft(2, '0')}';
     }
