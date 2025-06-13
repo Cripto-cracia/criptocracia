@@ -24,7 +24,7 @@ class ResultCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       elevation: isWinner ? 4 : 2,
       color: isWinner 
-          ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
+          ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
           : null,
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -57,7 +57,7 @@ class ResultCard extends StatelessWidget {
                 // Candidate Avatar
                 CircleAvatar(
                   radius: 25,
-                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                   child: Icon(
                     Icons.person,
                     size: 25,
@@ -115,7 +115,7 @@ class ResultCard extends StatelessWidget {
                     Text(
                       AppLocalizations.of(context).votesLabel,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -144,7 +144,7 @@ class ResultCard extends StatelessWidget {
                       Text(
                         AppLocalizations.of(context).voteRatioDisplay(candidate.votes, totalVotes),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                   ],
@@ -156,7 +156,7 @@ class ResultCard extends StatelessWidget {
                   valueColor: AlwaysStoppedAnimation<Color>(
                     isWinner 
                         ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
                   ),
                   minHeight: 6,
                 ),

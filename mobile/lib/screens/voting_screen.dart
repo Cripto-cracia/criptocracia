@@ -78,7 +78,7 @@ class _VotingScreenState extends State<VotingScreen> {
                       children: [
                         CircleAvatar(
                           radius: 30,
-                          backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                          backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                           child: Icon(
                             Icons.person,
                             size: 30,
@@ -214,7 +214,7 @@ class _VotingScreenState extends State<VotingScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
+                          color: Colors.green.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.green),
                         ),
@@ -294,7 +294,7 @@ class _VotingScreenState extends State<VotingScreen> {
                     isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
                     color: isCompleted 
                         ? Colors.green 
-                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                     size: 20,
                   ),
           ),
@@ -304,7 +304,7 @@ class _VotingScreenState extends State<VotingScreen> {
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: isCompleted 
                   ? Theme.of(context).colorScheme.onSurface
-                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               fontWeight: isLoading ? FontWeight.w600 : FontWeight.normal,
             ),
           ),

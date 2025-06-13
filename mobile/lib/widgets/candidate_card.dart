@@ -29,7 +29,7 @@ class CandidateCard extends StatelessWidget {
               // Candidate Avatar
               CircleAvatar(
                 radius: 30,
-                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                 child: Icon(
                   Icons.person,
                   size: 30,
@@ -92,7 +92,7 @@ class CandidateCard extends StatelessWidget {
                 Icon(
                   Icons.arrow_forward_ios,
                   size: 16,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
               ],
             ],
