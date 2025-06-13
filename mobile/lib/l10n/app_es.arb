@@ -56,7 +56,7 @@
   
   "pauseUpdatesTooltip": "Pausar Actualizaciones",
   "resumeUpdatesTooltip": "Reanudar Actualizaciones",
-  "electionSummarySection": "Resumen de la Elección",
+  "electionSummarySection": "Resumen",
   "totalVotesLabel": "Total de Votos",
   "candidatesLabel": "Candidatos",
   "statusLabel": "Estado",
