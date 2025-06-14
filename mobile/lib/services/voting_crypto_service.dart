@@ -193,12 +193,12 @@ class VotingCryptoService {
 
   /// Get blinded message for transmission to election authority
   static String getBlindedMessageForTransmission(VotingSession session) {
-    return base64Encode(session.blindingResult.blindedMessage);
+    return base64.encode(session.blindingResult.blindedMessage);
   }
 
   /// Parse blind signature response from election authority
   static Uint8List parseBlindSignatureResponse(String base64Signature) {
-    return base64Decode(base64Signature);
+    return base64.decode(base64Signature);
   }
 }
 
@@ -274,7 +274,7 @@ class VoteSignature {
   /// Convert to JSON
   Map<String, dynamic> toJson() {
     return {
-      'signature': base64Encode(signature),
+      'signature': base64.encode(signature),
       'voting_token': votingToken.toJson(),
       'session_id': sessionId,
       'verified_at': verifiedAt.millisecondsSinceEpoch,
@@ -284,7 +284,7 @@ class VoteSignature {
   /// Create from JSON
   factory VoteSignature.fromJson(Map<String, dynamic> json) {
     return VoteSignature(
-      signature: base64Decode(json['signature']),
+      signature: base64.decode(json['signature']),
       votingToken: VotingToken.fromJson(json['voting_token']),
       sessionId: json['session_id'],
       verifiedAt: DateTime.fromMillisecondsSinceEpoch(json['verified_at']),
@@ -316,7 +316,7 @@ class CastableVote {
   Map<String, dynamic> toJson() {
     return {
       'vote_data': voteData.toJson(),
-      'signature': base64Encode(signature),
+      'signature': base64.encode(signature),
       'voter_npub': voterNpub,
       'voter_nonce': voterNonce,
       'election_id': electionId,
@@ -329,7 +329,7 @@ class CastableVote {
   factory CastableVote.fromJson(Map<String, dynamic> json) {
     return CastableVote(
       voteData: VoteData.fromJson(json['vote_data']),
-      signature: base64Decode(json['signature']),
+      signature: base64.decode(json['signature']),
       voterNpub: json['voter_npub'],
       voterNonce: json['voter_nonce'],
       electionId: json['election_id'],
