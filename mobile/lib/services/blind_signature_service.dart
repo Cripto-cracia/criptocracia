@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:pointycastle/export.dart';
 import 'package:crypto/crypto.dart';
+import 'package:basic_utils/basic_utils.dart';
 
 /// RSA Blind Signature Service implementing David Chaum's blind signature scheme
 /// Used for anonymous voting where the election authority can sign votes
@@ -32,43 +33,38 @@ class BlindSignatureService {
     );
   }
 
-  /// Convert RSA public key to PEM format for transmission
+  /// Convert RSA public key to proper PKCS#1 PEM format
   static String publicKeyToPem(RSAPublicKey publicKey) {
-    final modulus = _bigIntToBytes(publicKey.modulus!);
-    final exponent = _bigIntToBytes(publicKey.exponent!);
-    
-    // Simple encoding for demonstration - in production use proper ASN.1/DER encoding
-    final keyData = base64Encode([
-      ...modulus,
-      0xFF, // separator
-      ...exponent,
-    ]);
-    
-    return '-----BEGIN PUBLIC KEY-----\n$keyData\n-----END PUBLIC KEY-----';
+    try {
+      // Convert PointyCastle RSAPublicKey to basic_utils RSAPublicKey
+      final basicUtilsKey = RSAPublicKey(
+        publicKey.modulus!,
+        publicKey.exponent!,
+      );
+      
+      // Use basic_utils to encode as proper PKCS#1 PEM
+      return CryptoUtils.encodeRSAPublicKeyToPemPkcs1(basicUtilsKey);
+    } catch (e) {
+      debugPrint('❌ Error encoding RSA public key to PEM: $e');
+      throw FormatException('Failed to encode RSA public key: $e');
+    }
   }
 
-  /// Parse RSA public key from PEM format
+  /// Parse RSA public key from proper PKCS#1 PEM format
   static RSAPublicKey publicKeyFromPem(String pemKey) {
-    final keyData = pemKey
-        .replaceAll('-----BEGIN PUBLIC KEY-----', '')
-        .replaceAll('-----END PUBLIC KEY-----', '')
-        .replaceAll('\n', '')
-        .trim();
-    
-    final bytes = base64Decode(keyData);
-    final separatorIndex = bytes.indexOf(0xFF);
-    
-    if (separatorIndex == -1) {
-      throw FormatException('Invalid PEM key format');
+    try {
+      // Use basic_utils to decode PKCS#1 PEM
+      final basicUtilsKey = CryptoUtils.rsaPublicKeyFromPemPkcs1(pemKey);
+      
+      // Convert back to PointyCastle RSAPublicKey
+      return RSAPublicKey(
+        basicUtilsKey.modulus!,
+        basicUtilsKey.exponent!,
+      );
+    } catch (e) {
+      debugPrint('❌ Error parsing RSA public key from PEM: $e');
+      throw FormatException('Failed to parse RSA public key: $e');
     }
-    
-    final modulusBytes = bytes.sublist(0, separatorIndex);
-    final exponentBytes = bytes.sublist(separatorIndex + 1);
-    
-    final modulus = _bytesToBigInt(modulusBytes);
-    final exponent = _bytesToBigInt(exponentBytes);
-    
-    return RSAPublicKey(modulus, exponent);
   }
 
   /// Blind a message for signing (voter side)
