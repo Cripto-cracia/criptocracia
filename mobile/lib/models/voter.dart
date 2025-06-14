@@ -23,7 +23,7 @@ class Voter {
   
   void generateNonce() {
     final random = Random.secure();
-    _nonce = Uint8List(16); // 128-bit nonce
+    _nonce = Uint8List(32); // 256-bit nonce
     
     for (int i = 0; i < _nonce.length; i++) {
       _nonce[i] = random.nextInt(256);
