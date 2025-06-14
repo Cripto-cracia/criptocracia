@@ -12,8 +12,14 @@ class BlindSignatureService {
   static const int _keySize = 2048; // RSA key size in bits
   static const int _publicExponent = 65537; // Standard RSA public exponent
 
-  /// Generate RSA key pair for blind signature operations
-  static AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> generateKeyPair() {
+  /// Generate RSA key pair for blind signature operations asynchronously
+  /// Runs in a separate isolate to prevent blocking the UI thread
+  static Future<AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>> generateKeyPair() {
+    return compute(_generatePair, null);
+  }
+
+  /// Helper method for RSA key generation that runs in an isolate
+  static AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> _generatePair(void _) {
     final keyGen = RSAKeyGenerator();
     final secureRandom = _getSecureRandom();
     
