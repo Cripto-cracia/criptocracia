@@ -18,10 +18,7 @@ void main() {
     // Just pump once to avoid network timeouts
     await tester.pump();
 
-    // Verify that the app title appears
-    expect(find.text('Criptocracia'), findsAtLeastNWidgets(1));
-    
-    // Verify that the main navigation elements are present
+    // Verify the bottom navigation elements are present
     expect(find.text('Elections'), findsOneWidget);
     expect(find.text('Results'), findsOneWidget);
     

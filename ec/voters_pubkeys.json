@@ -14,5 +14,9 @@
     {
         "name": "Daniel",
         "pubkey": "00000217c8b36c2098604aa15a2317739de96b62c3a49cb648da7b35ddc3c683"
+    },
+    {
+        "name": "Grunch",
+        "pubkey": "npub13asp2zl0959hpdtlla4f60v3y7xmtw2x7ydesfy5htar0vjeuvtsl3ce3u"
     }
 ]

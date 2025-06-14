@@ -44,6 +44,7 @@ dependencies:
   crypto: ^3.0.3
   cryptography: ^2.7.0
   pointycastle: ^3.9.1
+  basic_utils: ^5.7.0
   
   # Nostr protocol
   dart_nostr: ^9.1.1
