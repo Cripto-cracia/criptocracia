@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pointycastle/export.dart';
 import '../models/election.dart';
 import '../models/voter.dart';
@@ -10,6 +10,16 @@ import 'nostr_key_manager.dart';
 /// High-level service for managing the cryptographic voting workflow
 /// Handles the complete process: nonce generation → blinding → signing → unblinding → vote casting
 class VotingCryptoService {
+  // Secure storage instance for sensitive voting session data
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+    ),
+    iOptions: IOSOptions(
+      accessibility: KeychainAccessibility.first_unlock_this_device,
+    ),
+  );
+  
   // Storage keys for voting session data
   static const String _currentVoteSessionKey = 'current_vote_session';
 
@@ -67,8 +77,7 @@ class VotingCryptoService {
   /// Get the current active voting session
   static Future<VotingSession?> getCurrentVotingSession() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final sessionJson = prefs.getString(_currentVoteSessionKey);
+      final sessionJson = await _secureStorage.read(key: _currentVoteSessionKey);
       
       if (sessionJson == null) return null;
       
@@ -171,16 +180,15 @@ class VotingCryptoService {
 
   /// Clear the current voting session
   static Future<void> clearVotingSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_currentVoteSessionKey);
-    debugPrint('🗑️ Voting session cleared');
+    await _secureStorage.delete(key: _currentVoteSessionKey);
+    debugPrint('🗑️ Voting session cleared from secure storage');
   }
 
-  /// Store voting session data
+  /// Store voting session data securely
   static Future<void> _storeVotingSession(VotingSession session) async {
-    final prefs = await SharedPreferences.getInstance();
     final sessionJson = jsonEncode(session.toJson());
-    await prefs.setString(_currentVoteSessionKey, sessionJson);
+    await _secureStorage.write(key: _currentVoteSessionKey, value: sessionJson);
+    debugPrint('🔒 Voting session stored securely');
   }
 
   /// Get blinded message for transmission to election authority
