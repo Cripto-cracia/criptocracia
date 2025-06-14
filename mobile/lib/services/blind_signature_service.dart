@@ -73,6 +73,54 @@ class BlindSignatureService {
     }
   }
 
+  /// Convert RSA public key to DER format bytes
+  static Uint8List publicKeyToDer(RSAPublicKey publicKey) {
+    try {
+      // Convert PointyCastle RSAPublicKey to basic_utils RSAPublicKey
+      final basicUtilsKey = RSAPublicKey(
+        publicKey.modulus!,
+        publicKey.exponent!,
+      );
+      
+      // First convert to PEM, then extract DER bytes from PEM
+      final pemKey = CryptoUtils.encodeRSAPublicKeyToPemPkcs1(basicUtilsKey);
+      
+      // Extract base64 content from PEM and decode to DER bytes
+      final pemContent = pemKey
+          .replaceAll('-----BEGIN RSA PUBLIC KEY-----', '')
+          .replaceAll('-----END RSA PUBLIC KEY-----', '')
+          .replaceAll('\n', '')
+          .replaceAll('\r', '')
+          .trim();
+      
+      return base64Decode(pemContent);
+    } catch (e) {
+      debugPrint('❌ Error encoding RSA public key to DER: $e');
+      throw FormatException('Failed to encode RSA public key to DER: $e');
+    }
+  }
+
+  /// Parse RSA public key from DER format bytes
+  static RSAPublicKey publicKeyFromDer(Uint8List derBytes) {
+    try {
+      // Convert DER bytes to PEM format
+      final base64Content = base64Encode(derBytes);
+      final pemKey = '-----BEGIN RSA PUBLIC KEY-----\n$base64Content\n-----END RSA PUBLIC KEY-----';
+      
+      // Use basic_utils to decode PKCS#1 PEM
+      final basicUtilsKey = CryptoUtils.rsaPublicKeyFromPemPkcs1(pemKey);
+      
+      // Convert back to PointyCastle RSAPublicKey
+      return RSAPublicKey(
+        basicUtilsKey.modulus!,
+        basicUtilsKey.exponent!,
+      );
+    } catch (e) {
+      debugPrint('❌ Error parsing RSA public key from DER: $e');
+      throw FormatException('Failed to parse RSA public key from DER: $e');
+    }
+  }
+
   /// Blind a message for signing (voter side)
   /// Returns BlindingResult containing blinded message and blinding factor
   static BlindingResult blindMessage(Uint8List message, RSAPublicKey publicKey) {
