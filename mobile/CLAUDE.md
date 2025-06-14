@@ -16,6 +16,8 @@ Criptocracia is an experimental, trustless open-source electronic voting system.
 
 ### Testing and Code Quality
 - `flutter test` - Run all tests
+- `flutter test --dart-define=CI=true` - Run tests with performance tests skipped (for CI)
+- `flutter test --dart-define=SLOW_DEVICE=true` - Run tests with performance tests skipped (for slow devices)
 - `flutter analyze` - Run static analysis (uses flutter_lints rules)
 - `flutter pub get` - Install dependencies
 - `flutter pub upgrade` - Update dependencies

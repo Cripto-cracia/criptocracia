@@ -248,10 +248,11 @@ void main() {
     
     group('Performance and Memory Tests', () {
       test('should handle large messages efficiently', () {
-        // Skip performance test in CI environments to avoid flaky failures
+        // Skip performance test in CI or low-power environments to avoid flaky failures
         const isCi = bool.fromEnvironment('CI', defaultValue: false);
-        if (isCi) {
-          return; // Skip test in CI
+        const isSlowDevice = bool.fromEnvironment('SLOW_DEVICE', defaultValue: false);
+        if (isCi || isSlowDevice) {
+          return; // Skip test in CI or on slow devices
         }
         
         final largeMessage = Uint8List.fromList(List.generate(100000, (i) => i % 256));
@@ -267,10 +268,11 @@ void main() {
       });
       
       test('should serialize large results efficiently', () {
-        // Skip performance test in CI environments to avoid flaky failures
+        // Skip performance test in CI or low-power environments to avoid flaky failures
         const isCi = bool.fromEnvironment('CI', defaultValue: false);
-        if (isCi) {
-          return; // Skip test in CI
+        const isSlowDevice = bool.fromEnvironment('SLOW_DEVICE', defaultValue: false);
+        if (isCi || isSlowDevice) {
+          return; // Skip test in CI or on slow devices
         }
         
         final largeMessage = Uint8List.fromList(List.generate(50000, (i) => i % 256));

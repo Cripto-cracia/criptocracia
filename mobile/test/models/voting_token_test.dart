@@ -272,11 +272,12 @@ void main() {
 
     group('Performance Tests', () {
       test('should serialize and deserialize efficiently', () {
-        // Skip performance test in CI environments to avoid flaky failures
+        // Skip performance test in CI or low-power environments to avoid flaky failures
         // due to GC pauses and resource constraints
         const isCi = bool.fromEnvironment('CI', defaultValue: false);
-        if (isCi) {
-          return; // Skip test in CI
+        const isSlowDevice = bool.fromEnvironment('SLOW_DEVICE', defaultValue: false);
+        if (isCi || isSlowDevice) {
+          return; // Skip test in CI or on slow devices
         }
         
         final stopwatch = Stopwatch()..start();
@@ -302,10 +303,11 @@ void main() {
       });
 
       test('should handle multiple VotingToken creations efficiently', () {
-        // Skip performance test in CI environments to avoid flaky failures
+        // Skip performance test in CI or low-power environments to avoid flaky failures
         const isCi = bool.fromEnvironment('CI', defaultValue: false);
-        if (isCi) {
-          return; // Skip test in CI
+        const isSlowDevice = bool.fromEnvironment('SLOW_DEVICE', defaultValue: false);
+        if (isCi || isSlowDevice) {
+          return; // Skip test in CI or on slow devices
         }
         
         final stopwatch = Stopwatch()..start();
