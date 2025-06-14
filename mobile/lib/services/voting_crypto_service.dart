@@ -12,8 +12,6 @@ import 'nostr_key_manager.dart';
 class VotingCryptoService {
   // Storage keys for voting session data
   static const String _currentVoteSessionKey = 'current_vote_session';
-  static const String _blindingResultKey = 'current_blinding_result';
-  static const String _votingTokenKey = 'current_voting_token';
 
   /// Generate a voter nonce and create a voting session
   static Future<VotingSession> startVotingSession({
@@ -175,8 +173,6 @@ class VotingCryptoService {
   static Future<void> clearVotingSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_currentVoteSessionKey);
-    await prefs.remove(_blindingResultKey);
-    await prefs.remove(_votingTokenKey);
     debugPrint('🗑️ Voting session cleared');
   }
 
