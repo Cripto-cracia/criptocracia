@@ -43,8 +43,6 @@ class Voter {
     return {
       'nonce': base64Encode(_nonce),
       'hashed_nonce': base64Encode(_hashedNonce),
-      'nonce_hex': nonceHex,
-      'hashed_nonce_hex': hashedNonceHex,
     };
   }
 
