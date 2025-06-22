@@ -3,6 +3,7 @@ Manages voter registration, issuance of blind tokens, vote reception, and counti
 
 use blind_rsa_signatures::{BlindSignature, BlindedMessage, Options, SecretKey as RSASecretKey};
 use nanoid::nanoid;
+use nostr_sdk::PublicKey;
 use num_bigint_dig::BigUint;
 use rand::thread_rng;
 use serde_json::Value;
@@ -76,13 +77,34 @@ impl Election {
             return;
         }
         println!("🔑 Registering voter: {}", voter_pk);
+
+        // Convert npub to hex format if needed
+        let hex_pubkey = if voter_pk.starts_with("npub") {
+            match PublicKey::parse(voter_pk) {
+                Ok(pk) => pk.to_hex(),
+                Err(e) => {
+                    log::warn!("Invalid npub format: {}", e);
+                    return;
+                }
+            }
+        } else {
+            // Validate hex format
+            match PublicKey::from_hex(voter_pk) {
+                Ok(pk) => pk.to_hex(),
+                Err(e) => {
+                    log::warn!("Invalid pubkey format: {}", e);
+                    return;
+                }
+            }
+        };
+
         // 1) Check that the pubkey is not already registered.
-        if self.authorized_voters.contains(voter_pk) {
+        if self.authorized_voters.contains(&hex_pubkey) {
             println!("⚠️ Voter already registered");
             return;
         }
-        // 2) Add to the list of authorized voters.
-        self.authorized_voters.insert(voter_pk.to_string());
+        // 2) Add to the list of authorized voters in hex format.
+        self.authorized_voters.insert(hex_pubkey);
     }
 
     /// Blindly signs the hash submitted by a voter.
@@ -93,8 +115,22 @@ impl Election {
     ) -> Result<BlindSignature, &'static str> {
         let options = Options::default();
         let rng = &mut thread_rng();
+
+        // Convert voter_pk to hex format for comparison
+        let hex_pubkey = if req.voter_pk.starts_with("npub") {
+            match PublicKey::parse(&req.voter_pk) {
+                Ok(pk) => pk.to_hex(),
+                Err(_) => return Err("Invalid npub format"),
+            }
+        } else {
+            match PublicKey::from_hex(&req.voter_pk) {
+                Ok(pk) => pk.to_hex(),
+                Err(_) => return Err("Invalid pubkey format"),
+            }
+        };
+
         // Check that the voter is authorized and has not previously requested it.
-        if !self.authorized_voters.remove(&req.voter_pk) {
+        if !self.authorized_voters.remove(&hex_pubkey) {
             return Err("Unauthorized voter or nonce hash already issued");
         }
         // 2) Sign it
@@ -162,6 +198,7 @@ mod tests {
     use super::*;
     use crate::util::load_keys;
     use blind_rsa_signatures::Options;
+    use nostr_sdk::ToBech32;
     use num_bigint_dig::{BigUint, RandBigInt};
     use rand::rngs::OsRng;
     use serde_json::Value;
@@ -196,17 +233,42 @@ mod tests {
     #[test]
     fn test_register_voter_and_duplicate() {
         let mut e = make_election();
-        let pk = "npub_test";
-        e.register_voter(pk);
-        assert!(e.authorized_voters.contains(pk));
+        // Use a valid hex public key
+        let hex_pk = "e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c";
 
-        // Re-registration does not duplicate
-        e.register_voter(pk);
+        // Register with hex format
+        e.register_voter(hex_pk);
+        assert_eq!(e.authorized_voters.len(), 1);
+        assert!(e.authorized_voters.contains(hex_pk));
+
+        // Re-registration with same hex does not duplicate
+        e.register_voter(hex_pk);
         assert_eq!(e.authorized_voters.len(), 1);
 
         // Change status to InProgress and do not allow registration
         e.status = Status::InProgress;
-        e.register_voter("otra");
+        e.register_voter("another_key");
+        assert_eq!(e.authorized_voters.len(), 1);
+    }
+
+    #[test]
+    fn test_register_voter_npub_conversion() {
+        let mut e = make_election();
+        // Use the valid hex key from main.rs comments
+        let hex_pk = "e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c";
+        // Convert to npub format for testing
+        let pk = PublicKey::from_hex(hex_pk).unwrap();
+        let npub_pk = pk.to_bech32().unwrap();
+
+        // Register with npub format
+        e.register_voter(&npub_pk);
+        assert_eq!(e.authorized_voters.len(), 1);
+        // Should be stored in hex format
+        assert!(e.authorized_voters.contains(hex_pk));
+        assert!(!e.authorized_voters.contains(&npub_pk));
+
+        // Re-registration with hex format of same key does not duplicate
+        e.register_voter(hex_pk);
         assert_eq!(e.authorized_voters.len(), 1);
     }
 

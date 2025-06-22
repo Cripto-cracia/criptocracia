@@ -68,7 +68,10 @@ async fn main() -> Result<()> {
     // We need to encode the RSA public key in Base64 to publish it on Nostr
     let pk_der_b64 = general_purpose::STANDARD.encode(&pk_der);
 
-    println!("🔑 Electoral Commission Public key: {}", keys.public_key());
+    println!(
+        "🔑 Electoral Commission Nostr Public key: {}",
+        keys.public_key()
+    );
 
     // Build the signing client
     let client = Client::builder().signer(keys.clone()).build();
@@ -76,8 +79,8 @@ async fn main() -> Result<()> {
     // Add the Mostro relay and connect
     client.add_relay("wss://relay.mostro.network").await?;
     client.connect().await;
-    // The election starts in 60 seconds
-    let starting_ts = chrono::Utc::now().timestamp() as u64 + 60;
+    // The election starts in 600 seconds
+    let starting_ts = chrono::Utc::now().timestamp() as u64 + 600; // 10 minutes from now
     // Duration of the election
     let duration = 60 * 60; // 1 hour in seconds
     let election = Election::new(
@@ -196,8 +199,8 @@ async fn main() -> Result<()> {
                     };
                     let event = match nip59::extract_rumor(&keys, &event).await {
                         Ok(u) => u,
-                        Err(_) => {
-                            println!("Error unwrapping gift");
+                        Err(e) => {
+                            println!("Error unwrapping gift: {:#?}", e);
                             continue;
                         }
                     };
