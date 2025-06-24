@@ -372,4 +372,331 @@ mod tests {
             "The token is not valid"
         );
     }
+
+    #[test]
+    fn test_complete_voting_flow_without_nostr() {
+        // Setup: Load RSA keys and create election
+        let (pk, sk) =
+            load_keys("ec_private.pem", "ec_public.pem").expect("Failed to load RSA keys");
+
+        let mut election = Election::new(
+            "Complete Flow Test".to_string(),
+            vec![
+                Candidate::new(1, "Alice"),
+                Candidate::new(2, "Bob"),
+                Candidate::new(3, "Charlie"),
+            ],
+            1000, // start_time
+            3600, // duration
+            "test_rsa_key".to_string(),
+        );
+
+        // Register voters first (while status is Open)
+        let voter1_pk = "e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c";
+        let voter2_pk = "a1b2c3d4e5f67890123456789012345678901234567890123456789012345678";
+        let voter3_pk = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+
+        election.register_voter(voter1_pk);
+        election.register_voter(voter2_pk);
+        election.register_voter(voter3_pk);
+
+        assert_eq!(election.authorized_voters.len(), 3);
+
+        // Change status to InProgress to allow voting
+        election.status = Status::InProgress;
+
+        // === VOTER 1 FLOW ===
+        println!("=== Testing Voter 1 Flow ===");
+
+        // 1. Voter generates nonce and blinds it
+        let rng = &mut rand::thread_rng();
+        let options = Options::default();
+
+        // Generate 128-bit nonce
+        let voter1_nonce: BigUint = OsRng.gen_biguint(128);
+        let voter1_h_n_bytes = Sha256::digest(voter1_nonce.to_bytes_be()).to_vec();
+        let voter1_h_n = BigUint::from_bytes_be(&voter1_h_n_bytes);
+
+        // Blind the hash
+        let voter1_blinding_result = pk
+            .blind(rng, &voter1_h_n_bytes, true, &options)
+            .expect("Failed to blind message for voter 1");
+
+        // 2. Create token request (simulating what happens in main.rs)
+        let voter1_request = BlindTokenRequest {
+            voter_pk: voter1_pk.to_string(),
+            blinded_h_n: voter1_blinding_result.blind_msg.clone(),
+        };
+
+        // 3. EC issues blind signature
+        let voter1_blind_sig = election
+            .issue_token(voter1_request, sk.clone())
+            .expect("Failed to issue token to voter 1");
+
+        // Verify voter was removed from authorized list
+        assert_eq!(election.authorized_voters.len(), 2);
+
+        // 4. Voter unblinds the signature to get token
+        let voter1_token = pk
+            .finalize(
+                &voter1_blind_sig,
+                &voter1_blinding_result.secret,
+                voter1_blinding_result.msg_randomizer,
+                &voter1_h_n_bytes,
+                &options,
+            )
+            .expect("Failed to unblind signature for voter 1");
+
+        // 5. Verify token is valid
+        assert!(
+            voter1_token
+                .verify(
+                    &pk,
+                    voter1_blinding_result.msg_randomizer,
+                    &voter1_h_n_bytes,
+                    &options
+                )
+                .is_ok(),
+            "Voter 1 token verification failed"
+        );
+
+        // 6. Cast vote for candidate 2 (Bob)
+        let voter1_candidate_id = 2u8;
+        let voter1_vote_result = election.receive_vote(voter1_h_n, voter1_candidate_id);
+        assert!(
+            voter1_vote_result.is_ok(),
+            "Failed to receive vote from voter 1"
+        );
+
+        // === VOTER 2 FLOW ===
+        println!("=== Testing Voter 2 Flow ===");
+
+        let voter2_nonce: BigUint = OsRng.gen_biguint(128);
+        let voter2_h_n_bytes = Sha256::digest(voter2_nonce.to_bytes_be()).to_vec();
+        let voter2_h_n = BigUint::from_bytes_be(&voter2_h_n_bytes);
+
+        let voter2_blinding_result = pk
+            .blind(rng, &voter2_h_n_bytes, true, &options)
+            .expect("Failed to blind message for voter 2");
+
+        let voter2_request = BlindTokenRequest {
+            voter_pk: voter2_pk.to_string(),
+            blinded_h_n: voter2_blinding_result.blind_msg.clone(),
+        };
+
+        let voter2_blind_sig = election
+            .issue_token(voter2_request, sk.clone())
+            .expect("Failed to issue token to voter 2");
+
+        let voter2_token = pk
+            .finalize(
+                &voter2_blind_sig,
+                &voter2_blinding_result.secret,
+                voter2_blinding_result.msg_randomizer,
+                &voter2_h_n_bytes,
+                &options,
+            )
+            .expect("Failed to unblind signature for voter 2");
+
+        assert!(
+            voter2_token
+                .verify(
+                    &pk,
+                    voter2_blinding_result.msg_randomizer,
+                    &voter2_h_n_bytes,
+                    &options
+                )
+                .is_ok(),
+            "Voter 2 token verification failed"
+        );
+
+        // Cast vote for candidate 1 (Alice)
+        let voter2_candidate_id = 1u8;
+        let voter2_vote_result = election.receive_vote(voter2_h_n, voter2_candidate_id);
+        assert!(
+            voter2_vote_result.is_ok(),
+            "Failed to receive vote from voter 2"
+        );
+
+        // === VOTER 3 FLOW ===
+        println!("=== Testing Voter 3 Flow ===");
+
+        let voter3_nonce: BigUint = OsRng.gen_biguint(128);
+        let voter3_h_n_bytes = Sha256::digest(voter3_nonce.to_bytes_be()).to_vec();
+        let voter3_h_n = BigUint::from_bytes_be(&voter3_h_n_bytes);
+
+        let voter3_blinding_result = pk
+            .blind(rng, &voter3_h_n_bytes, true, &options)
+            .expect("Failed to blind message for voter 3");
+
+        let voter3_request = BlindTokenRequest {
+            voter_pk: voter3_pk.to_string(),
+            blinded_h_n: voter3_blinding_result.blind_msg.clone(),
+        };
+
+        let voter3_blind_sig = election
+            .issue_token(voter3_request, sk.clone())
+            .expect("Failed to issue token to voter 3");
+
+        let voter3_token = pk
+            .finalize(
+                &voter3_blind_sig,
+                &voter3_blinding_result.secret,
+                voter3_blinding_result.msg_randomizer,
+                &voter3_h_n_bytes,
+                &options,
+            )
+            .expect("Failed to unblind signature for voter 3");
+
+        assert!(
+            voter3_token
+                .verify(
+                    &pk,
+                    voter3_blinding_result.msg_randomizer,
+                    &voter3_h_n_bytes,
+                    &options
+                )
+                .is_ok(),
+            "Voter 3 token verification failed"
+        );
+
+        // Cast vote for candidate 2 (Bob)
+        let voter3_candidate_id = 2u8;
+        let voter3_vote_result = election.receive_vote(voter3_h_n, voter3_candidate_id);
+        assert!(
+            voter3_vote_result.is_ok(),
+            "Failed to receive vote from voter 3"
+        );
+
+        // === VERIFY RESULTS ===
+        println!("=== Verifying Election Results ===");
+
+        // All voters should be removed from authorized list
+        assert_eq!(election.authorized_voters.len(), 0);
+
+        // Check vote tallies
+        let tally = election.tally();
+        println!("Final tally: {:?}", tally);
+
+        // Alice (id=1) should have 1 vote (from voter2)
+        let alice_votes = tally.get(&Candidate::new(1, "Alice")).unwrap_or(&0);
+        assert_eq!(*alice_votes, 1, "Alice should have 1 vote");
+
+        // Bob (id=2) should have 2 votes (from voter1 and voter3)
+        let bob_votes = tally.get(&Candidate::new(2, "Bob")).unwrap_or(&0);
+        assert_eq!(*bob_votes, 2, "Bob should have 2 votes");
+
+        // Charlie (id=3) should have 0 votes
+        let charlie_votes = tally.get(&Candidate::new(3, "Charlie")).unwrap_or(&0);
+        assert_eq!(*charlie_votes, 0, "Charlie should have 0 votes");
+
+        // Verify total votes
+        assert_eq!(
+            election.votes.len(),
+            3,
+            "Should have received 3 votes total"
+        );
+
+        println!("✅ Complete voting flow test passed!");
+    }
+
+    #[test]
+    fn test_voting_flow_error_cases() {
+        let (pk, sk) =
+            load_keys("ec_private.pem", "ec_public.pem").expect("Failed to load RSA keys");
+
+        let mut election = Election::new(
+            "Error Cases Test".to_string(),
+            vec![Candidate::new(1, "Alice"), Candidate::new(2, "Bob")],
+            1000,
+            3600,
+            "test_rsa_key".to_string(),
+        );
+
+        let voter_pk = "e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c";
+        election.register_voter(voter_pk);
+
+        election.status = Status::InProgress;
+
+        let rng = &mut rand::thread_rng();
+        let options = Options::default();
+
+        // === Test 1: Unauthorized voter trying to get token ===
+        let unauthorized_pk = "1111111111111111111111111111111111111111111111111111111111111111";
+        let nonce1: BigUint = OsRng.gen_biguint(128);
+        let h_n_bytes1 = Sha256::digest(nonce1.to_bytes_be()).to_vec();
+
+        let blinding_result1 = pk
+            .blind(rng, &h_n_bytes1, true, &options)
+            .expect("Failed to blind message");
+
+        let unauthorized_request = BlindTokenRequest {
+            voter_pk: unauthorized_pk.to_string(),
+            blinded_h_n: blinding_result1.blind_msg.clone(),
+        };
+
+        let unauthorized_result = election.issue_token(unauthorized_request, sk.clone());
+        assert!(
+            unauthorized_result.is_err(),
+            "Unauthorized voter should not receive token"
+        );
+        assert_eq!(
+            unauthorized_result.unwrap_err(),
+            "Unauthorized voter or nonce hash already issued"
+        );
+
+        // === Test 2: Successful token issuance ===
+        let nonce2: BigUint = OsRng.gen_biguint(128);
+        let h_n_bytes2 = Sha256::digest(nonce2.to_bytes_be()).to_vec();
+        let h_n2 = BigUint::from_bytes_be(&h_n_bytes2);
+
+        let blinding_result2 = pk
+            .blind(rng, &h_n_bytes2, true, &options)
+            .expect("Failed to blind message");
+
+        let valid_request = BlindTokenRequest {
+            voter_pk: voter_pk.to_string(),
+            blinded_h_n: blinding_result2.blind_msg.clone(),
+        };
+
+        let blind_sig = election
+            .issue_token(valid_request, sk.clone())
+            .expect("Valid voter should receive token");
+
+        let _token = pk
+            .finalize(
+                &blind_sig,
+                &blinding_result2.secret,
+                blinding_result2.msg_randomizer,
+                &h_n_bytes2,
+                &options,
+            )
+            .expect("Failed to unblind signature");
+
+        // === Test 3: Double voting with same token ===
+        let vote_result1 = election.receive_vote(h_n2.clone(), 1);
+        assert!(vote_result1.is_ok(), "First vote should succeed");
+
+        let vote_result2 = election.receive_vote(h_n2.clone(), 2);
+        assert!(vote_result2.is_err(), "Double voting should be rejected");
+        assert_eq!(vote_result2.unwrap_err(), "duplicated vote");
+
+        // === Test 4: Trying to request token again from same voter ===
+        let nonce3: BigUint = OsRng.gen_biguint(128);
+        let h_n_bytes3 = Sha256::digest(nonce3.to_bytes_be()).to_vec();
+
+        let blinding_result3 = pk
+            .blind(rng, &h_n_bytes3, true, &options)
+            .expect("Failed to blind message");
+
+        let repeat_request = BlindTokenRequest {
+            voter_pk: voter_pk.to_string(),
+            blinded_h_n: blinding_result3.blind_msg.clone(),
+        };
+
+        let repeat_result = election.issue_token(repeat_request, sk.clone());
+        assert!(repeat_result.is_err(), "Voter should not get second token");
+
+        println!("✅ Error cases test passed!");
+    }
 }

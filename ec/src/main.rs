@@ -79,8 +79,8 @@ async fn main() -> Result<()> {
     // Add the Mostro relay and connect
     client.add_relay("wss://relay.mostro.network").await?;
     client.connect().await;
-    // The election starts in 600 seconds
-    let starting_ts = chrono::Utc::now().timestamp() as u64 + 600; // 10 minutes from now
+    // The election starts in 60 seconds
+    let starting_ts = chrono::Utc::now().timestamp() as u64 + 60; // 1 minute from now
     // Duration of the election
     let duration = 60 * 60; // 1 hour in seconds
     let election = Election::new(
@@ -174,6 +174,7 @@ async fn main() -> Result<()> {
             println!("👤 Registered {}", v.name);
         }
     }
+    println!("Election id: {}", election.lock().unwrap().id);
     let subscription = Filter::new()
         .pubkey(keys.public_key())
         .kind(Kind::GiftWrap)
