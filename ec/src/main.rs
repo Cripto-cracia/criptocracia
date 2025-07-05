@@ -3,16 +3,18 @@ mod types;
 mod util;
 
 use crate::election::{Election, Status};
-use crate::util::{load_keys, setup_logger};
+use crate::util::{load_keys, setup_logger, validate_required_files};
 
 use anyhow::Result;
 use base64::{Engine as _, engine::general_purpose};
 use blind_rsa_signatures::{BlindedMessage, MessageRandomizer, Options, Signature as RSASignature};
+use clap::Parser;
 use election::BlindTokenRequest;
 use nostr_sdk::prelude::*;
 use num_bigint_dig::BigUint;
 use std::{
     fs,
+    path::PathBuf,
     sync::{Arc, Mutex},
 };
 use tokio::{
@@ -26,6 +28,14 @@ use types::{Candidate, Message, Voter};
 // Hex private key:  e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c
 // Npub public key:  npub1qqqqqxkw2lgd59lurptz73jc43ksjwevezahh4zg20gvr9hzf2wq8nzqyl
 // Nsec private key: nsec1u0enx5rjskqv65wm3aqy34s5jyx53fwq6lc676q3aq7q0lyxtfwqph3yue
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Directory to store application data and keys
+    #[arg(short, long, default_value = "")]
+    dir: String,
+}
 
 /// Publish the state of the election
 async fn publish_election_event(client: &Client, keys: &Keys, election: &Election) -> Result<()> {
@@ -57,13 +67,38 @@ async fn publish_election_event(client: &Client, keys: &Keys, election: &Electio
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Parse command line arguments
+    let args = Args::parse();
+    
+    // Determine the application directory
+    let app_dir = if args.dir.is_empty() {
+        // Use default directory: $HOME/.ec/
+        let home_dir = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+        PathBuf::from(home_dir).join(".ec")
+    } else {
+        PathBuf::from(args.dir)
+    };
+    
+    // Create the directory if it doesn't exist
+    if !app_dir.exists() {
+        fs::create_dir_all(&app_dir)?;
+        println!("Created directory: {}", app_dir.display());
+    }
+    
+    // Validate that all required files exist
+    validate_required_files(&app_dir)?;
+    
     // Initialize logger
-    setup_logger(log::LevelFilter::Info).expect("Can't initialize logger");
+    setup_logger(log::LevelFilter::Info, app_dir.join("app.log")).expect("Can't initialize logger");
     log::info!("Criptocracia started");
+    log::info!("Using directory: {}", app_dir.display());
     let keys = Keys::parse("e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c")?;
 
     // 1. Load the keys from PEM files
-    let (pk, sk) = load_keys("ec_private.pem", "ec_public.pem")?;
+    let (pk, sk) = load_keys(
+        app_dir.join("ec_private.pem"),
+        app_dir.join("ec_public.pem")
+    )?;
     let pk_der = pk.to_der()?;
     // We need to encode the RSA public key in Base64 to publish it on Nostr
     let pk_der_b64 = general_purpose::STANDARD.encode(&pk_der);
@@ -166,7 +201,11 @@ async fn main() -> Result<()> {
     }
 
     // --- Register voters ---
-    let voters: Vec<Voter> = serde_json::from_str(&fs::read_to_string("voters_pubkeys.json")?)?;
+    let voters_file = app_dir.join("voters_pubkeys.json");
+    let voters_content = fs::read_to_string(&voters_file)
+        .map_err(|e| anyhow::anyhow!("Failed to read voters file {}: {}", voters_file.display(), e))?;
+    let voters: Vec<Voter> = serde_json::from_str(&voters_content)
+        .map_err(|e| anyhow::anyhow!("Failed to parse voters file {}: {}", voters_file.display(), e))?;
     {
         let mut e = election.lock().unwrap();
         for v in &voters {

@@ -18,5 +18,13 @@
     {
         "name": "Grunch",
         "pubkey": "npub18a2lxuq7nvqdecn6kmxwdn6g0l2ufwjg73k5wkfxa0u3d4f6nkcsejhjyw"
+    },
+    {
+        "name": "Android emulator",
+        "pubkey": "npub1qspsdkk74vsyzezhp7xuy23s0ge68gl6ytt0qrtk084emr0azxxqaak99s"
+    },
+    {
+        "name": "Xime",
+        "pubkey": "npub1h7evkk578a8g3pvex8hws0n2pyjw755ve0sg2tfufdfpxruyrvvs5tfd4p"
     }
 ]
