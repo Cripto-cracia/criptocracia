@@ -1,7 +1,9 @@
+mod database;
 mod election;
 mod types;
 mod util;
 
+use crate::database::Database;
 use crate::election::{Election, Status};
 use crate::util::{load_keys, setup_logger, validate_required_files};
 
@@ -38,7 +40,12 @@ struct Args {
 }
 
 /// Publish the state of the election
-async fn publish_election_event(client: &Client, keys: &Keys, election: &Election) -> Result<()> {
+async fn publish_election_event(
+    client: &Client,
+    keys: &Keys,
+    election: &Election,
+    db: &Database,
+) -> Result<()> {
     log::info!(
         "Publishing election {} status: {:?}",
         election.id,
@@ -62,6 +69,11 @@ async fn publish_election_event(client: &Client, keys: &Keys, election: &Electio
         election.id,
         election.status
     );
+
+    // Save election to database
+    db.upsert_election(election).await?;
+    log::info!("Election {} saved to database", election.id);
+
     Ok(())
 }
 
@@ -69,7 +81,7 @@ async fn publish_election_event(client: &Client, keys: &Keys, election: &Electio
 async fn main() -> Result<()> {
     // Parse command line arguments
     let args = Args::parse();
-    
+
     // Determine the application directory
     let app_dir = if args.dir.is_empty() {
         // Use default directory: $HOME/.ec/
@@ -78,26 +90,31 @@ async fn main() -> Result<()> {
     } else {
         PathBuf::from(args.dir)
     };
-    
+
     // Create the directory if it doesn't exist
     if !app_dir.exists() {
         fs::create_dir_all(&app_dir)?;
         println!("Created directory: {}", app_dir.display());
     }
-    
+
     // Validate that all required files exist
     validate_required_files(&app_dir)?;
-    
+
     // Initialize logger
     setup_logger(log::LevelFilter::Info, app_dir.join("app.log")).expect("Can't initialize logger");
     log::info!("Criptocracia started");
     log::info!("Using directory: {}", app_dir.display());
+
+    // Initialize database
+    let db = Arc::new(Database::new(app_dir.join("elections.db")).await?);
+    log::info!("Database initialized successfully");
+
     let keys = Keys::parse("e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c")?;
 
     // 1. Load the keys from PEM files
     let (pk, sk) = load_keys(
         app_dir.join("ec_private.pem"),
-        app_dir.join("ec_public.pem")
+        app_dir.join("ec_public.pem"),
     )?;
     let pk_der = pk.to_der()?;
     // We need to encode the RSA public key in Base64 to publish it on Nostr
@@ -136,6 +153,7 @@ async fn main() -> Result<()> {
         let election = Arc::clone(&election);
         let keys = keys.clone();
         let client = client.clone();
+        let db = Arc::clone(&db);
         tokio::spawn(async move {
             let start_ts = {
                 let e = election.lock().unwrap();
@@ -151,7 +169,7 @@ async fn main() -> Result<()> {
                 e.clone()
             };
             // Publish the event with the new status
-            if let Err(err) = publish_election_event(&client, &keys, &e_data).await {
+            if let Err(err) = publish_election_event(&client, &keys, &e_data, &db).await {
                 log::error!(
                     "Error publishing election with status {:?}: {}",
                     e_data.status,
@@ -164,6 +182,7 @@ async fn main() -> Result<()> {
         let election = Arc::clone(&election);
         let keys = keys.clone();
         let client = client.clone();
+        let db = Arc::clone(&db);
         tokio::spawn(async move {
             let end_ts = {
                 let e = election.lock().unwrap();
@@ -179,7 +198,7 @@ async fn main() -> Result<()> {
                 e.clone()
             };
             // Publish the event with the new status
-            if let Err(err) = publish_election_event(&client, &keys, &e_data).await {
+            if let Err(err) = publish_election_event(&client, &keys, &e_data, &db).await {
                 log::error!(
                     "Error publishing election with status {:?}: {}",
                     e_data.status,
@@ -192,7 +211,7 @@ async fn main() -> Result<()> {
         let e = election.lock().unwrap();
         e.clone()
     };
-    if let Err(err) = publish_election_event(&client, &keys, &e_data).await {
+    if let Err(err) = publish_election_event(&client, &keys, &e_data, &db).await {
         log::error!(
             "Error publishing election with status {:?}: {}",
             e_data.status,
@@ -202,10 +221,24 @@ async fn main() -> Result<()> {
 
     // --- Register voters ---
     let voters_file = app_dir.join("voters_pubkeys.json");
-    let voters_content = fs::read_to_string(&voters_file)
-        .map_err(|e| anyhow::anyhow!("Failed to read voters file {}: {}", voters_file.display(), e))?;
-    let voters: Vec<Voter> = serde_json::from_str(&voters_content)
-        .map_err(|e| anyhow::anyhow!("Failed to parse voters file {}: {}", voters_file.display(), e))?;
+    let voters_content = fs::read_to_string(&voters_file).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to read voters file {}: {}",
+            voters_file.display(),
+            e
+        )
+    })?;
+    let voters: Vec<Voter> = serde_json::from_str(&voters_content).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to parse voters file {}: {}",
+            voters_file.display(),
+            e
+        )
+    })?;
+
+    // Initialize voters in database
+    db.upsert_voters(&voters).await?;
+
     {
         let mut e = election.lock().unwrap();
         for v in &voters {
@@ -227,6 +260,7 @@ async fn main() -> Result<()> {
         let election = Arc::clone(&election);
         let keys = keys.clone();
         let tx = tx.clone();
+        let db = Arc::clone(&db);
         // Spawn a task to handle Nostr events
         tokio::spawn(async move {
             let mut notifications = client.notifications();
@@ -393,6 +427,14 @@ async fn main() -> Result<()> {
                             };
                             let future_ts = Timestamp::from(expire_ts);
                             println!("🗳️ Election's result: \n\n{}", results);
+
+                            // Update vote counts in database
+                            if let Err(err) =
+                                db.update_vote_counts(&election_id, &json_results).await
+                            {
+                                log::error!("Failed to update vote counts in database: {}", err);
+                            }
+
                             // We publish the results in a custom event with kind 35_001
                             match EventBuilder::new(Kind::Custom(35_001), json_string)
                                 .tag(Tag::identifier(election_id.clone()))
