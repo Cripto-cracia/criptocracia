@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- gRPC admin API for election management operations
+  - AdminService with 6 core operations: AddVoter, AddElection, AddCandidate, GetElection, ListVoters, ListElections
+  - Server runs on port 50001 alongside existing Nostr-based voting system
+  - Complete protobuf schema with proper validation and error handling
+  - Comprehensive test suite with 16 test cases covering all scenarios
+  - Full API documentation with usage examples for multiple languages
+  - Thread-safe implementation using Arc<Mutex> patterns for concurrency
+- Docker deployment configuration for Digital Ocean App Platform
+  - Multi-stage Dockerfile optimized for production
+  - Docker Compose setup for local development
+  - Digital Ocean App Platform specification file
+  - Comprehensive Docker deployment documentation
+- RSA key loading from environment variables
+  - Support for EC_PRIVATE_KEY and EC_PUBLIC_KEY environment variables
+  - Fallback to file-based key loading for backward compatibility
+  - Enhanced security for containerized deployments
+- SQLite database integration for persistent data storage
+  - Database schema for elections, candidates, and voters
+  - Automatic table creation and migration support
+  - Connection pooling and async operations
+  - Database integration with existing voting workflow
+- Configurable directory support
+  - Command-line `--dir` parameter for data directory specification
+  - Enhanced file validation and error handling
+  - Flexible deployment configurations
+
+### Changed
+- Refactored synchronization primitives from std::sync::Mutex to tokio::sync::Mutex
+  - Improved async/await compatibility throughout the codebase
+  - Better performance for concurrent operations
+  - Non-blocking database and election state operations
+- Enhanced voter registration to support both npub and hex formats
+- Reduced election start time from 15 minutes to 1 minute for faster testing
+- Updated documentation with new features and deployment options
+
+### Fixed
+- Improved error handling and validation across all components
+- Fixed type compatibility issues between different modules
+- Resolved compilation warnings and unused code
+- Enhanced input validation to prevent security vulnerabilities
+
 ## [0.1.1] - 2024-01-XX
 
 ### Added
@@ -82,9 +126,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Git repository with structured commits
 - Issue tracking and pull request workflow
 
-## [Unreleased]
-
-### Planned Features
+### Planned Features (Future Releases)
 - Registration token system for dynamic voter enrollment (v0.2)
 - Voter key pair generation and token signing (v0.2)
 - Multi-party Electoral Commission support
@@ -93,17 +135,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mobile voting application
 - Internationalization support
 - Performance optimizations for large elections
+- TLS support for gRPC API
+- Authentication and authorization for admin operations
+- Web-based dashboard for election management
 
 ### Known Limitations
 - Single Electoral Commission (no threshold signatures)
 - Experimental status (no security audit)
-- Manual voter registration process
+- gRPC API lacks authentication (secure network access required)
 - Limited replay protection mechanisms
 - Dependency on single Nostr relay
 
 ---
 
 ## Release Notes
+
+### Unreleased Version
+Major infrastructure improvements focusing on production readiness and administrative capabilities. Key additions include a complete gRPC admin API for programmatic election management, Docker deployment support for cloud platforms, and SQLite database integration for persistent data storage. The refactoring to async-aware synchronization primitives significantly improves performance and scalability.
 
 ### Version 0.1.1
 This release focuses on stability improvements and enhanced voter registration support. The major addition is support for both npub (Bech32) and hex formats for voter public keys, making the system more user-friendly. Comprehensive testing was added to ensure cryptographic operations work correctly.
