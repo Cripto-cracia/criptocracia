@@ -5,7 +5,7 @@ mod util;
 
 use crate::database::Database;
 use crate::election::{Election, Status};
-use crate::util::{load_keys, setup_logger, validate_required_files};
+use crate::util::{load_keys, load_keys_from_pem, setup_logger, validate_required_files};
 
 use anyhow::Result;
 use base64::{Engine as _, engine::general_purpose};
@@ -111,11 +111,20 @@ async fn main() -> Result<()> {
 
     let keys = Keys::parse("e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c")?;
 
-    // 1. Load the keys from PEM files
-    let (pk, sk) = load_keys(
-        app_dir.join("ec_private.pem"),
-        app_dir.join("ec_public.pem"),
-    )?;
+    // 1. Load the keys from environment variables or fallback to files
+    let (pk, sk) = if let (Ok(private_pem), Ok(public_pem)) = (
+        std::env::var("EC_PRIVATE_KEY"),
+        std::env::var("EC_PUBLIC_KEY")
+    ) {
+        // Load keys from environment variables
+        load_keys_from_pem(&private_pem, &public_pem)?
+    } else {
+        // Fallback to loading from files in app directory
+        load_keys(
+            app_dir.join("ec_private.pem"),
+            app_dir.join("ec_public.pem")
+        )?
+    };
     let pk_der = pk.to_der()?;
     // We need to encode the RSA public key in Base64 to publish it on Nostr
     let pk_der_b64 = general_purpose::STANDARD.encode(&pk_der);

@@ -30,16 +30,58 @@ pub fn load_keys<P: AsRef<Path>>(
         ));
     }
 
-    let priv_pem = fs::read_to_string(priv_path)
-        .map_err(|e| anyhow::anyhow!("Failed to read private key file {}: {}", priv_path.display(), e))?;
-    let pub_pem = fs::read_to_string(pub_path)
-        .map_err(|e| anyhow::anyhow!("Failed to read public key file {}: {}", pub_path.display(), e))?;
+    let priv_pem = fs::read_to_string(priv_path).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to read private key file {}: {}",
+            priv_path.display(),
+            e
+        )
+    })?;
+    let pub_pem = fs::read_to_string(pub_path).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to read public key file {}: {}",
+            pub_path.display(),
+            e
+        )
+    })?;
 
     // Parse the PEM to RSA objects
-    let sk = RSASecretKey::from_pem(&priv_pem)
-        .map_err(|e| anyhow::anyhow!("Failed to parse private key from {}: {}", priv_path.display(), e))?;
-    let pk = RSAPublicKey::from_pem(&pub_pem)
-        .map_err(|e| anyhow::anyhow!("Failed to parse public key from {}: {}", pub_path.display(), e))?;
+    let sk = RSASecretKey::from_pem(&priv_pem).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to parse private key from {}: {}",
+            priv_path.display(),
+            e
+        )
+    })?;
+    let pk = RSAPublicKey::from_pem(&pub_pem).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to parse public key from {}: {}",
+            pub_path.display(),
+            e
+        )
+    })?;
+
+    Ok((pk, sk))
+}
+
+/// Loads RSA keys directly from PEM strings (for environment variables)
+pub fn load_keys_from_pem(
+    private_pem: &str,
+    public_pem: &str,
+) -> Result<(RSAPublicKey, RSASecretKey)> {
+    // Parse the PEM strings to RSA objects
+    let sk = RSASecretKey::from_pem(private_pem).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to parse private key from environment variable: {}",
+            e
+        )
+    })?;
+    let pk = RSAPublicKey::from_pem(public_pem).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to parse public key from environment variable: {}",
+            e
+        )
+    })?;
 
     Ok((pk, sk))
 }
@@ -48,20 +90,27 @@ pub fn load_keys<P: AsRef<Path>>(
 pub fn validate_required_files<P: AsRef<Path>>(app_dir: P) -> Result<()> {
     let app_dir = app_dir.as_ref();
     let mut missing_files = Vec::new();
-    
-    let required_files = [
-        ("ec_private.pem", "RSA private key"),
-        ("ec_public.pem", "RSA public key"),
-        ("voters_pubkeys.json", "authorized voters list"),
-    ];
-    
+
+    let mut required_files = vec![("voters_pubkeys.json", "authorized voters list")];
+
+    // Only require PEM files if environment variables are not set
+    if std::env::var("EC_PRIVATE_KEY").is_err() || std::env::var("EC_PUBLIC_KEY").is_err() {
+        required_files.push(("ec_private.pem", "RSA private key"));
+        required_files.push(("ec_public.pem", "RSA public key"));
+    }
+
     for (filename, description) in &required_files {
         let file_path = app_dir.join(filename);
         if !file_path.exists() {
-            missing_files.push(format!("  - {} ({}): {}", filename, description, file_path.display()));
+            missing_files.push(format!(
+                "  - {} ({}): {}",
+                filename,
+                description,
+                file_path.display()
+            ));
         }
     }
-    
+
     if !missing_files.is_empty() {
         return Err(anyhow::anyhow!(
             "Required files not found in directory: {}\n\nMissing files:\n{}\n\nPlease ensure all required files are in the specified directory.",
@@ -69,12 +118,15 @@ pub fn validate_required_files<P: AsRef<Path>>(app_dir: P) -> Result<()> {
             missing_files.join("\n")
         ));
     }
-    
+
     Ok(())
 }
 
 /// Initialize logger function
-pub fn setup_logger<P: AsRef<Path>>(level: log::LevelFilter, log_file_path: P) -> Result<(), fern::InitError> {
+pub fn setup_logger<P: AsRef<Path>>(
+    level: log::LevelFilter,
+    log_file_path: P,
+) -> Result<(), fern::InitError> {
     Dispatch::new()
         .format(|out, message, record| {
             out.finish(format_args!(

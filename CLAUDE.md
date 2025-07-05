@@ -33,6 +33,24 @@ openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out ec_private.pem
 openssl rsa -in ec_private.pem -pubout -out ec_public.pem
 ```
 
+### Environment Variables
+```bash
+# RSA key content (optional, falls back to files in current directory)
+export EC_PRIVATE_KEY="$(cat ec_private.pem)"
+export EC_PUBLIC_KEY="$(cat ec_public.pem)"
+
+# Alternative: specify PEM content directly
+export EC_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC...
+-----END PRIVATE KEY-----"
+export EC_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyzrjKKl...
+-----END PUBLIC KEY-----"
+
+# If environment variables are not set, files are expected in the --dir directory:
+# {dir}/ec_private.pem and {dir}/ec_public.pem
+```
+
 ## Architecture
 
 ### Workspace Structure
@@ -68,9 +86,9 @@ openssl rsa -in ec_private.pem -pubout -out ec_public.pem
 - **Relay**: Uses `wss://relay.mostro.network` for message transport
 
 ### Configuration Files
-- `ec/voters_pubkeys.json`: Authorized voter public keys
+- `{dir}/voters_pubkeys.json`: Authorized voter public keys in the specified directory
 - `~/.voter/settings.toml`: Voter configuration (Nostr keys, EC pubkey, relays)
-- RSA key pairs: `ec_private.pem` and `ec_public.pem` for blind signatures
+- RSA key pairs: Specified via `EC_PRIVATE_KEY` and `EC_PUBLIC_KEY` environment variables (PEM content) or files in current directory
 
 ### Security Model
 - Voter anonymity via blind signatures and random keypairs for vote casting
