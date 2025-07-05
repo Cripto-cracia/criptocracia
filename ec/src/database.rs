@@ -13,6 +13,7 @@ pub struct Database {
 
 /// Election record for database
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct ElectionRecord {
     pub id: String,
     pub name: String,
@@ -26,6 +27,7 @@ pub struct ElectionRecord {
 
 /// Candidate record for database
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct CandidateRecord {
     pub id: Option<i64>,
     pub election_id: String,
@@ -36,6 +38,7 @@ pub struct CandidateRecord {
 
 /// Voter record for database  
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct VoterRecord {
     pub id: Option<i64>,
     pub pubkey: String,
@@ -259,6 +262,7 @@ impl Database {
     }
 
     /// Get all elections
+    #[allow(dead_code)]
     pub async fn get_elections(&self) -> Result<Vec<ElectionRecord>> {
         let rows = sqlx::query("SELECT * FROM elections ORDER BY start_time DESC")
             .fetch_all(&self.pool)
@@ -282,6 +286,7 @@ impl Database {
     }
 
     /// Get candidates for an election
+    #[allow(dead_code)]
     pub async fn get_candidates(&self, election_id: &str) -> Result<Vec<CandidateRecord>> {
         let rows = sqlx::query(
             "SELECT * FROM candidates WHERE election_id = ? ORDER BY candidate_id"
@@ -305,6 +310,7 @@ impl Database {
     }
 
     /// Get all voters
+    #[allow(dead_code)]
     pub async fn get_voters(&self) -> Result<Vec<VoterRecord>> {
         let rows = sqlx::query("SELECT * FROM voters ORDER BY reference")
             .fetch_all(&self.pool)

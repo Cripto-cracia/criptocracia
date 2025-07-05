@@ -17,10 +17,10 @@ use num_bigint_dig::BigUint;
 use std::{
     fs,
     path::PathBuf,
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
 use tokio::{
-    sync::mpsc,
+    sync::{mpsc, Mutex},
     time::{Duration, Instant, sleep_until},
 };
 use types::{Candidate, Message, Voter};
@@ -156,14 +156,14 @@ async fn main() -> Result<()> {
         let db = Arc::clone(&db);
         tokio::spawn(async move {
             let start_ts = {
-                let e = election.lock().unwrap();
+                let e = election.lock().await;
                 e.start_time
             };
             let now = chrono::Utc::now().timestamp() as u64;
             let delay = start_ts.saturating_sub(now);
             sleep_until(Instant::now() + Duration::from_secs(delay)).await;
             let e_data = {
-                let mut e = election.lock().unwrap();
+                let mut e = election.lock().await;
                 e.status = Status::InProgress;
                 log::info!("Election {} -> InProgress", e.id);
                 e.clone()
@@ -185,14 +185,14 @@ async fn main() -> Result<()> {
         let db = Arc::clone(&db);
         tokio::spawn(async move {
             let end_ts = {
-                let e = election.lock().unwrap();
+                let e = election.lock().await;
                 e.end_time
             };
             let now = chrono::Utc::now().timestamp() as u64;
             let delay = end_ts.saturating_sub(now);
             sleep_until(Instant::now() + Duration::from_secs(delay)).await;
             let e_data = {
-                let mut e = election.lock().unwrap();
+                let mut e = election.lock().await;
                 e.status = Status::Finished;
                 log::info!("Election {} -> Finished", e.id);
                 e.clone()
@@ -208,7 +208,7 @@ async fn main() -> Result<()> {
         });
     }
     let e_data = {
-        let e = election.lock().unwrap();
+        let e = election.lock().await;
         e.clone()
     };
     if let Err(err) = publish_election_event(&client, &keys, &e_data, &db).await {
@@ -240,13 +240,13 @@ async fn main() -> Result<()> {
     db.upsert_voters(&voters).await?;
 
     {
-        let mut e = election.lock().unwrap();
+        let mut e = election.lock().await;
         for v in &voters {
             e.register_voter(&v.pubkey);
             println!("👤 Registered {}", v.name);
         }
     }
-    println!("Election id: {}", election.lock().unwrap().id);
+    println!("Election id: {}", election.lock().await.id);
     let subscription = Filter::new()
         .pubkey(keys.public_key())
         .kind(Kind::GiftWrap)
@@ -305,7 +305,7 @@ async fn main() -> Result<()> {
                             };
                             // Issue token
                             let blind_sig =
-                                match election.lock().unwrap().issue_token(req, sk.clone()) {
+                                match election.lock().await.issue_token(req, sk.clone()) {
                                     Ok(token) => token,
                                     Err(e) => {
                                         log::warn!("Error issuing token: {}", e);
@@ -392,12 +392,12 @@ async fn main() -> Result<()> {
                                 continue;
                             }
 
-                            if let Err(e) = election.lock().unwrap().receive_vote(h_n, vote) {
+                            if let Err(e) = election.lock().await.receive_vote(h_n, vote) {
                                 log::warn!("Error receiving vote: {}", e);
                                 continue;
                             }
                             // Tally the votes
-                            let tally = election.lock().unwrap().tally();
+                            let tally = election.lock().await.tally();
                             let mut results = String::new();
                             let mut json_results: Vec<(u8, u32)> = Vec::new();
                             for (cand, count) in &tally {
@@ -416,7 +416,7 @@ async fn main() -> Result<()> {
                             };
 
                             let (election_id, expire_ts) = {
-                                let e = election.lock().unwrap();
+                                let e = election.lock().await;
                                 (
                                     e.id.clone(),
                                     chrono::Utc::now()
