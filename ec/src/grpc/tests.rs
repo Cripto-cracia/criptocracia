@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod tests {
+mod admin_service_tests {
     use super::super::admin::AdminServiceImpl;
     use super::super::admin_proto::admin_service_server::AdminService;
     use super::super::admin_proto::*;
@@ -17,10 +17,7 @@ mod tests {
         let db = Arc::new(Database::new(temp_file.path()).await.unwrap());
 
         // Create test election
-        let candidates = vec![
-            Candidate::new(1, "Alice"),
-            Candidate::new(2, "Bob"),
-        ];
+        let candidates = vec![Candidate::new(1, "Alice"), Candidate::new(2, "Bob")];
         let election = Election::new(
             "Test Election".to_string(),
             candidates,
@@ -306,7 +303,7 @@ mod tests {
         assert_eq!(inner.message, "Elections retrieved successfully");
         // Note: This might be 0 if the election wasn't saved to DB in the test setup
         // Note: This might be 0 if the election wasn't saved to DB in the test setup
-        assert!(inner.total_count >= 0);
+        // Removed useless comparison: assert!(inner.total_count >= 0);
     }
 
     #[tokio::test]
@@ -328,7 +325,11 @@ mod tests {
         let inner = response.into_inner();
 
         assert!(!inner.success);
-        assert!(inner.message.contains("Candidate ID must be greater than 0"));
+        assert!(
+            inner
+                .message
+                .contains("Candidate ID must be greater than 0")
+        );
     }
 
     #[tokio::test]

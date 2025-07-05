@@ -2,6 +2,7 @@
 name = "voter"
 version = "0.1.1"
 edition = "2024"
+description = "Client for an experimental, trustless open-source electronic voting system built in Rust."
 authors.workspace = true
 homepage.workspace = true
 repository.workspace = true
