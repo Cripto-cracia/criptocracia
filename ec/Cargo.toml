@@ -26,6 +26,17 @@ log = "0.4.27"
 fern = "0.7.1"
 sqlx = { version = "0.8.6", features = ["runtime-tokio-rustls", "sqlite", "macros", "chrono"] }
 clap = { version = "4.5", features = ["derive"] }
+tonic = "0.10"
+prost = "0.12"
+
+[build-dependencies]
+tonic-build = "0.10"
 
 [dev-dependencies]
 sha2 = "0.10"
+tempfile = "3.19"
+chrono = "0.4.40"
+
+[[example]]
+name = "grpc_client"
+path = "../examples/grpc_client.rs"

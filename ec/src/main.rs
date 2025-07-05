@@ -1,10 +1,12 @@
 mod database;
 mod election;
+mod grpc;
 mod types;
 mod util;
 
 use crate::database::Database;
 use crate::election::{Election, Status};
+use crate::grpc::server::GrpcServer;
 use crate::util::{load_keys, load_keys_from_pem, setup_logger, validate_required_files};
 
 use anyhow::Result;
@@ -473,6 +475,20 @@ async fn main() -> Result<()> {
             }
         });
     }
+    
+    // Start gRPC server for admin operations
+    {
+        let db_clone = Arc::clone(&db);
+        let election_clone = Arc::clone(&election);
+        tokio::spawn(async move {
+            let grpc_server = GrpcServer::default(); // Uses port 50001
+            log::info!("Starting gRPC admin server on port {}", grpc_server.port);
+            if let Err(e) = grpc_server.start(db_clone, election_clone).await {
+                log::error!("gRPC server failed: {}", e);
+            }
+        });
+    }
+    
     loop {
         // Check for new orders without blocking
         while let Ok(_event) = rx.try_recv() {

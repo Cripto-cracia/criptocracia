@@ -35,7 +35,7 @@ The binary will be in `target/release/ec`.
 
 ## Configuration
 
-Manually add a testing election with voters pubkeys in the file `election.json`.
+Manually add a testing election with voters pubkeys in the file `voters_pubkeys.json`.
 
 In order to work with blind signatures we need to create a RSA private key
 

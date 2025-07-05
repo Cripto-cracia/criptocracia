@@ -13,7 +13,7 @@ impl Candidate {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Voter {
     pub name: String,
     pub pubkey: String,

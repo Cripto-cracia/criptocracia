@@ -263,8 +263,12 @@ impl Database {
 
     /// Get all elections
     #[allow(dead_code)]
-    pub async fn get_elections(&self) -> Result<Vec<ElectionRecord>> {
-        let rows = sqlx::query("SELECT * FROM elections ORDER BY start_time DESC")
+    pub async fn get_elections(&self, limit: u32, offset: u32) -> Result<Vec<ElectionRecord>> {
+        let limit = if limit == 0 { 100 } else { limit.min(1000) }; // Default limit, max 1000
+        
+        let rows = sqlx::query("SELECT * FROM elections ORDER BY start_time DESC LIMIT ? OFFSET ?")
+            .bind(limit as i64)
+            .bind(offset as i64)
             .fetch_all(&self.pool)
             .await?;
 
@@ -311,8 +315,12 @@ impl Database {
 
     /// Get all voters
     #[allow(dead_code)]
-    pub async fn get_voters(&self) -> Result<Vec<VoterRecord>> {
-        let rows = sqlx::query("SELECT * FROM voters ORDER BY reference")
+    pub async fn get_voters(&self, limit: u32, offset: u32) -> Result<Vec<VoterRecord>> {
+        let limit = if limit == 0 { 100 } else { limit.min(1000) }; // Default limit, max 1000
+        
+        let rows = sqlx::query("SELECT * FROM voters ORDER BY reference LIMIT ? OFFSET ?")
+            .bind(limit as i64)
+            .bind(offset as i64)
             .fetch_all(&self.pool)
             .await?;
 

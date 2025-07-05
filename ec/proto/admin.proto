@@ -1,0 +1,143 @@
+syntax = "proto3";
+
+package admin;
+
+// AdminService provides administrative operations for the Electoral Commission
+service AdminService {
+    // Add a new voter to the authorized voters list
+    rpc AddVoter(AddVoterRequest) returns (AddVoterResponse);
+    
+    // Add a new election
+    rpc AddElection(AddElectionRequest) returns (AddElectionResponse);
+    
+    // Add a candidate to an existing election
+    rpc AddCandidate(AddCandidateRequest) returns (AddCandidateResponse);
+    
+    // Get election status and details
+    rpc GetElection(GetElectionRequest) returns (GetElectionResponse);
+    
+    // List all voters
+    rpc ListVoters(ListVotersRequest) returns (ListVotersResponse);
+    
+    // List all elections
+    rpc ListElections(ListElectionsRequest) returns (ListElectionsResponse);
+}
+
+// Request to add a new voter
+message AddVoterRequest {
+    string name = 1;
+    string pubkey = 2;
+}
+
+// Response for adding a voter
+message AddVoterResponse {
+    bool success = 1;
+    string message = 2;
+    string voter_id = 3;
+}
+
+// Request to add a new election
+message AddElectionRequest {
+    string name = 1;
+    uint64 start_time = 2;
+    uint64 duration = 3;
+    repeated CandidateInfo candidates = 4;
+    string rsa_public_key = 5;
+}
+
+// Response for adding an election
+message AddElectionResponse {
+    bool success = 1;
+    string message = 2;
+    string election_id = 3;
+}
+
+// Request to add a candidate to an election
+message AddCandidateRequest {
+    string election_id = 1;
+    uint32 candidate_id = 2;
+    string name = 3;
+}
+
+// Response for adding a candidate
+message AddCandidateResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+// Request to get election details
+message GetElectionRequest {
+    string election_id = 1;
+}
+
+// Response with election details
+message GetElectionResponse {
+    bool success = 1;
+    string message = 2;
+    ElectionInfo election = 3;
+}
+
+// Request to list voters
+message ListVotersRequest {
+    uint32 limit = 1;
+    uint32 offset = 2;
+}
+
+// Response with voters list
+message ListVotersResponse {
+    bool success = 1;
+    string message = 2;
+    repeated VoterInfo voters = 3;
+    uint32 total_count = 4;
+}
+
+// Request to list elections
+message ListElectionsRequest {
+    uint32 limit = 1;
+    uint32 offset = 2;
+}
+
+// Response with elections list
+message ListElectionsResponse {
+    bool success = 1;
+    string message = 2;
+    repeated ElectionInfo elections = 3;
+    uint32 total_count = 4;
+}
+
+// Information about a candidate
+message CandidateInfo {
+    uint32 id = 1;
+    string name = 2;
+    uint32 vote_count = 3;
+}
+
+// Information about a voter
+message VoterInfo {
+    string name = 1;
+    string pubkey = 2;
+    uint64 created_at = 3;
+}
+
+// Information about an election
+message ElectionInfo {
+    string id = 1;
+    string name = 2;
+    uint64 start_time = 3;
+    uint64 end_time = 4;
+    string status = 5;
+    repeated CandidateInfo candidates = 6;
+    string rsa_public_key = 7;
+    uint64 created_at = 8;
+    uint64 updated_at = 9;
+    uint32 total_votes = 10;
+}
+
+// Election status enum
+enum ElectionStatus {
+    ELECTION_STATUS_UNSPECIFIED = 0;
+    ELECTION_STATUS_OPEN = 1;
+    ELECTION_STATUS_IN_PROGRESS = 2;
+    ELECTION_STATUS_FINISHED = 3;
+    ELECTION_STATUS_CANCELED = 4;
+}

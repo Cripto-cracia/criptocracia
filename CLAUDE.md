@@ -22,6 +22,9 @@ cargo build
 # Run specific binary
 cargo run --bin ec     # Electoral Commission
 cargo run --bin voter  # Voter client
+
+# Run gRPC client example
+cargo run --example grpc_client --bin ec
 ```
 
 ### Key Generation (for EC setup)
@@ -65,6 +68,11 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyzrjKKl...
 - `election.rs`: Election state management, voter registration, vote tallying
 - `types.rs`: Shared data structures (Candidate, Voter, Message)
 - `util.rs`: Key loading, logging setup utilities
+- `grpc/`: gRPC admin API for election management
+  - `admin.rs`: Admin service implementation (AddVoter, AddElection, AddCandidate)
+  - `server.rs`: gRPC server configuration and startup
+  - `tests.rs`: Comprehensive test suite for gRPC functionality
+- `database.rs`: SQLite database operations for persistent storage
 
 #### Voter Client (voter/)
 - `main.rs`: TUI interface with ratatui, handles election selection and voting
@@ -73,11 +81,18 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyzrjKKl...
 - `util.rs`: Cryptographic utilities, EC public key parsing
 
 ### Key Data Flow
-1. **Registration**: EC maintains authorized voter pubkeys in `voters_pubkeys.json`
+1. **Registration**: EC maintains authorized voter pubkeys in database and `voters_pubkeys.json`
 2. **Token Request**: Voter blinds nonce hash, sends via NIP-59 Gift Wrap
 3. **Token Issuance**: EC verifies voter authorization, issues blind signature
 4. **Vote Casting**: Voter unblinds token, sends vote with anonymous keypair
 5. **Result Publishing**: EC verifies tokens, tallies votes, publishes results to Nostr
+
+### Admin API (gRPC)
+- **Port**: 50001 (localhost only)
+- **Services**: AddVoter, AddElection, AddCandidate, GetElection, ListVoters, ListElections
+- **Authentication**: None (secure network access required)
+- **Documentation**: See `GRPC_API.md` for complete API reference
+- **Example Client**: Run `cargo run --example grpc_client --bin ec`
 
 ### Nostr Integration
 - **Kind 35000**: Election announcements with candidate lists and RSA public keys
@@ -87,6 +102,7 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyzrjKKl...
 
 ### Configuration Files
 - `{dir}/voters_pubkeys.json`: Authorized voter public keys in the specified directory
+- `{dir}/elections.db`: SQLite database for persistent election, candidate, and voter data
 - `~/.voter/settings.toml`: Voter configuration (Nostr keys, EC pubkey, relays)
 - RSA key pairs: Specified via `EC_PRIVATE_KEY` and `EC_PUBLIC_KEY` environment variables (PEM content) or files in current directory
 
