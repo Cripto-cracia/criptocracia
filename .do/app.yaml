@@ -1,0 +1,33 @@
+name: criptocracia-ec
+region: nyc
+services:
+- name: electoral-commission
+  source_dir: /
+  github:
+    repo: grunch/criptocracia
+    branch: main
+  run_command: ec --dir /app/data
+  environment_slug: ubuntu-20
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  http_port: 3000
+  routes:
+  - path: /
+  health_check:
+    http_path: /health
+    initial_delay_seconds: 10
+    period_seconds: 10
+    timeout_seconds: 5
+    success_threshold: 1
+    failure_threshold: 3
+  envs:
+  - key: RUST_LOG
+    value: info
+  - key: DATA_DIR
+    value: /app/data
+  - key: EC_PRIVATE_KEY
+    scope: RUN_TIME
+    type: SECRET
+  - key: EC_PUBLIC_KEY
+    scope: RUN_TIME
+    type: SECRET

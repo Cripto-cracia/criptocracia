@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  ec:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - RUST_LOG=info
+      - DATA_DIR=/app/data
+      # RSA keys via environment variables (base64 encoded for security)
+      # - EC_PRIVATE_KEY=${EC_PRIVATE_KEY}
+      # - EC_PUBLIC_KEY=${EC_PUBLIC_KEY}
+    volumes:
+      # For development: mount local data directory
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "echo", "Electoral Commission is running"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

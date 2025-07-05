@@ -1,0 +1,35 @@
+# Ignore build artifacts
+target/
+**/target/
+
+# Ignore development files
+.git/
+.gitignore
+README.md
+CLAUDE.md
+*.md
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore test data
+test_*
+tmp/
+temp/
+
+# Ignore logs
+*.log
+app.log
+
+# Ignore local configuration
+ec_private.pem
+ec_public.pem
+voters_pubkeys.json
+elections.db
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
