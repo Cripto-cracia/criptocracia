@@ -62,9 +62,10 @@ EXPOSE 50001
 ENV RUST_LOG=info
 ENV DATA_DIR=/app/data
 
-# Optional: Set RSA keys via environment variables (override file-based keys)
-# ENV EC_PRIVATE_KEY=""
-# ENV EC_PUBLIC_KEY=""
+# RSA keys should be provided via secure methods:
+# 1. File mounts (recommended): -v /host/keys:/app/data:ro
+# 2. Docker secrets (production): --secret source=ec_private_key,target=/app/data/ec_private.pem
+# 3. Never use environment variables for private key material
 
 # Health check for gRPC API availability
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
