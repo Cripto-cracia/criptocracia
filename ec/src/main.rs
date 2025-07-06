@@ -17,15 +17,16 @@ use election::BlindTokenRequest;
 use nostr_sdk::prelude::*;
 use num_bigint_dig::BigUint;
 use std::{
+    collections::HashMap,
     fs,
     path::PathBuf,
     sync::Arc,
 };
 use tokio::{
     sync::{mpsc, Mutex},
-    time::{Duration, Instant, sleep_until},
+    time::Duration,
 };
-use types::{Candidate, Message, Voter};
+use types::{Candidate, Message};
 
 // Demo keys for the electoral commission:
 // Hex public key:   0000001ace57d0da17fc18562f4658ac6d093b2cc8bb7bd44853d0c196e24a9c
@@ -39,6 +40,36 @@ struct Args {
     /// Directory to store application data and keys
     #[arg(short, long, default_value = "")]
     dir: String,
+}
+
+/// Load elections from database and restore their state
+async fn load_elections_from_database(db: &Database) -> Result<Vec<Election>> {
+    let election_records = db.load_all_elections().await?;
+    let mut elections = Vec::new();
+    
+    for election_record in election_records {
+        // Load candidates for this election
+        let candidate_records = db.get_candidates(&election_record.id).await?;
+        
+        // Load authorized voters for this election
+        let authorized_voters = db.load_election_voters(&election_record.id).await?;
+        
+        // Load used tokens for this election
+        let used_tokens = db.load_used_tokens(&election_record.id).await?;
+        
+        // Restore the election from database records
+        let election = Election::from_database(
+            election_record,
+            candidate_records,
+            authorized_voters,
+            used_tokens,
+        );
+        
+        log::info!("Loaded election: {} (ID: {})", election.name, election.id);
+        elections.push(election);
+    }
+    
+    Ok(elections)
 }
 
 /// Publish the state of the election
@@ -142,122 +173,71 @@ async fn main() -> Result<()> {
     // Add the Mostro relay and connect
     client.add_relay("wss://relay.mostro.network").await?;
     client.connect().await;
-    // The election starts in 60 seconds
-    let starting_ts = chrono::Utc::now().timestamp() as u64 + 60; // 1 minute from now
-    // Duration of the election
-    let duration = 60 * 60; // 1 hour in seconds
-    let election = Election::new(
-        "Libertad 2024".to_string(),
-        vec![
-            Candidate::new(1, "Donkey 🫏"),
-            Candidate::new(2, "Rat 🐀"),
-            Candidate::new(3, "Sheep 🐑"),
-            Candidate::new(4, "Sloth 🦥"),
-        ],
-        starting_ts,
-        duration,
-        pk_der_b64,
-    );
-    let election = Arc::new(Mutex::new(election));
-    // --- Timers to change status automatically ---
-    {
-        let election = Arc::clone(&election);
-        let keys = keys.clone();
-        let client = client.clone();
-        let db = Arc::clone(&db);
-        tokio::spawn(async move {
-            let start_ts = {
-                let e = election.lock().await;
-                e.start_time
-            };
-            let now = chrono::Utc::now().timestamp() as u64;
-            let delay = start_ts.saturating_sub(now);
-            sleep_until(Instant::now() + Duration::from_secs(delay)).await;
-            let e_data = {
-                let mut e = election.lock().await;
-                e.status = Status::InProgress;
-                log::info!("Election {} -> InProgress", e.id);
-                e.clone()
-            };
-            // Publish the event with the new status
-            if let Err(err) = publish_election_event(&client, &keys, &e_data, &db).await {
-                log::error!(
-                    "Error publishing election with status {:?}: {}",
-                    e_data.status,
-                    err
-                );
-            }
-        });
+    
+    // Load elections from database and store in HashMap
+    let elections_vec = load_elections_from_database(&db).await?;
+    let mut elections_map = HashMap::new();
+    
+    for election in elections_vec {
+        log::info!("Loaded election: {} (ID: {})", election.name, election.id);
+        elections_map.insert(election.id.clone(), election);
     }
-    {
-        let election = Arc::clone(&election);
-        let keys = keys.clone();
-        let client = client.clone();
-        let db = Arc::clone(&db);
-        tokio::spawn(async move {
-            let end_ts = {
-                let e = election.lock().await;
-                e.end_time
-            };
-            let now = chrono::Utc::now().timestamp() as u64;
-            let delay = end_ts.saturating_sub(now);
-            sleep_until(Instant::now() + Duration::from_secs(delay)).await;
-            let e_data = {
-                let mut e = election.lock().await;
-                e.status = Status::Finished;
-                log::info!("Election {} -> Finished", e.id);
-                e.clone()
-            };
-            // Publish the event with the new status
-            if let Err(err) = publish_election_event(&client, &keys, &e_data, &db).await {
-                log::error!(
-                    "Error publishing election with status {:?}: {}",
-                    e_data.status,
-                    err
-                );
-            }
-        });
-    }
-    let e_data = {
-        let e = election.lock().await;
-        e.clone()
-    };
-    if let Err(err) = publish_election_event(&client, &keys, &e_data, &db).await {
-        log::error!(
-            "Error publishing election with status {:?}: {}",
-            e_data.status,
-            err
-        );
-    }
-
-    // --- Register voters ---
-    let voters_file = app_dir.join("voters_pubkeys.json");
-    let voters_content = fs::read_to_string(&voters_file).map_err(|e| {
-        anyhow::anyhow!(
-            "Failed to read voters file {}: {}",
-            voters_file.display(),
-            e
-        )
-    })?;
-    let voters: Vec<Voter> = serde_json::from_str(&voters_content).map_err(|e| {
-        anyhow::anyhow!(
-            "Failed to parse voters file {}: {}",
-            voters_file.display(),
-            e
-        )
-    })?;
-
-    // Initialize voters in database
-    db.upsert_voters(&voters).await?;
-
-    {
-        let mut e = election.lock().await;
-        for v in &voters {
-            e.register_voter(&v.pubkey);
-            println!("👤 Registered {}", v.name);
+    
+    if elections_map.is_empty() {
+        log::info!("No elections found in database. Starting with empty state.");
+        println!("🗳️ Electoral Commission started with no elections. Use gRPC admin API to create elections.");
+    } else {
+        log::info!("Loaded {} elections from database", elections_map.len());
+        println!("🗳️ Electoral Commission started with {} elections loaded from database", elections_map.len());
+        
+        // Display loaded elections
+        for (id, election) in &elections_map {
+            println!("📋 Election: {} (ID: {}, Status: {:?})", election.name, id, election.status);
         }
     }
-    println!("Election id: {}", election.lock().await.id);
+    
+    let elections = Arc::new(Mutex::new(elections_map));
+    
+    // Start periodic election status checker
+    {
+        let elections_clone = Arc::clone(&elections);
+        let db_clone = Arc::clone(&db);
+        let client_clone = client.clone();
+        let keys_clone = keys.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(30));
+            loop {
+                interval.tick().await;
+                
+                let current_time = chrono::Utc::now().timestamp() as u64;
+                let mut elections_to_update = Vec::new();
+                
+                // Check and update election statuses
+                {
+                    let mut elections_guard = elections_clone.lock().await;
+                    for (election_id, election) in elections_guard.iter_mut() {
+                        if election.update_status_based_on_time(current_time) {
+                            log::info!("Election {} status changed to {:?}", election_id, election.status);
+                            elections_to_update.push(election.clone());
+                        }
+                    }
+                }
+                
+                // Persist status changes and publish to Nostr
+                for election in elections_to_update {
+                    // Save to database
+                    if let Err(e) = db_clone.upsert_election(&election).await {
+                        log::error!("Failed to update election {} in database: {}", election.id, e);
+                    }
+                    
+                    // Publish to Nostr
+                    if let Err(e) = publish_election_event(&client_clone, &keys_clone, &election, &db_clone).await {
+                        log::error!("Failed to publish election {} status update to Nostr: {}", election.id, e);
+                    }
+                }
+            }
+        });
+    }
     let subscription = Filter::new()
         .pubkey(keys.public_key())
         .kind(Kind::GiftWrap)
@@ -268,7 +248,7 @@ async fn main() -> Result<()> {
     let (tx, mut rx) = mpsc::channel(100);
     {
         let client = client.clone();
-        let election = Arc::clone(&election);
+        let elections = Arc::clone(&elections);
         let keys = keys.clone();
         let tx = tx.clone();
         let db = Arc::clone(&db);
@@ -285,7 +265,7 @@ async fn main() -> Result<()> {
                     let event = match nip59::extract_rumor(&keys, &event).await {
                         Ok(u) => u,
                         Err(e) => {
-                            println!("Error unwrapping gift: {:#?}", e);
+                            log::warn!("Error unwrapping gift: {}", e);
                             continue;
                         }
                     };
@@ -314,15 +294,34 @@ async fn main() -> Result<()> {
                                 voter_pk: voter.to_string(),
                                 blinded_h_n,
                             };
-                            // Issue token
-                            let blind_sig =
-                                match election.lock().await.issue_token(req, sk.clone()) {
-                                    Ok(token) => token,
-                                    Err(e) => {
-                                        log::warn!("Error issuing token: {}", e);
-                                        continue;
+                            // Find an election where this voter is authorized
+                            let mut blind_sig = None;
+                            let mut target_election_id = None;
+                            {
+                                let mut elections_guard = elections.lock().await;
+                                for (election_id, election) in elections_guard.iter_mut() {
+                                    let req_copy = BlindTokenRequest {
+                                        voter_pk: req.voter_pk.clone(),
+                                        blinded_h_n: req.blinded_h_n.clone(),
+                                    };
+                                    match election.issue_token(req_copy, sk.clone()) {
+                                        Ok(token) => {
+                                            blind_sig = Some(token);
+                                            target_election_id = Some(election_id.clone());
+                                            break;
+                                        }
+                                        Err(_) => continue, // Try next election
                                     }
-                                };
+                                }
+                            }
+                            
+                            let blind_sig = match blind_sig {
+                                Some(sig) => sig,
+                                None => {
+                                    log::warn!("Voter {} not authorized for any election", voter);
+                                    continue;
+                                }
+                            };
                             // Encode token to Base64
                             let blind_sig_b64 = general_purpose::STANDARD.encode(blind_sig);
                             let response =
@@ -403,12 +402,39 @@ async fn main() -> Result<()> {
                                 continue;
                             }
 
-                            if let Err(e) = election.lock().await.receive_vote(h_n, vote) {
-                                log::warn!("Error receiving vote: {}", e);
+                            // Try to receive vote in an appropriate election
+                            let mut vote_accepted = false;
+                            let mut target_election_id = None;
+                            let mut tally = HashMap::new();
+                            {
+                                let mut elections_guard = elections.lock().await;
+                                for (election_id, election) in elections_guard.iter_mut() {
+                                    match election.receive_vote(h_n.clone(), vote) {
+                                        Ok(()) => {
+                                            vote_accepted = true;
+                                            target_election_id = Some(election_id.clone());
+                                            
+                                            // Save used token to database
+                                            if let Err(e) = election.save_used_token_to_db(&db, &h_n).await {
+                                                log::error!("Failed to save used token to database: {}", e);
+                                            }
+                                            
+                                            // Get tally for this election
+                                            tally = election.tally();
+                                            break;
+                                        }
+                                        Err(_) => continue, // Try next election
+                                    }
+                                }
+                            }
+                            
+                            if !vote_accepted {
+                                log::warn!("Vote not accepted by any election");
                                 continue;
                             }
-                            // Tally the votes
-                            let tally = election.lock().await.tally();
+                            
+                            let election_id = target_election_id.unwrap();
+                            
                             let mut results = String::new();
                             let mut json_results: Vec<(u8, u32)> = Vec::new();
                             for (cand, count) in &tally {
@@ -426,16 +452,10 @@ async fn main() -> Result<()> {
                                 }
                             };
 
-                            let (election_id, expire_ts) = {
-                                let e = election.lock().await;
-                                (
-                                    e.id.clone(),
-                                    chrono::Utc::now()
-                                        .checked_add_signed(chrono::Duration::days(5))
-                                        .unwrap()
-                                        .timestamp() as u64,
-                                )
-                            };
+                            let expire_ts = chrono::Utc::now()
+                                .checked_add_signed(chrono::Duration::days(5))
+                                .unwrap()
+                                .timestamp() as u64;
                             let future_ts = Timestamp::from(expire_ts);
                             println!("🗳️ Election's result: \n\n{}", results);
 
@@ -479,11 +499,14 @@ async fn main() -> Result<()> {
     // Start gRPC server for admin operations
     {
         let db_clone = Arc::clone(&db);
-        let election_clone = Arc::clone(&election);
+        let elections_clone = Arc::clone(&elections);
+        let pk_der_b64_clone = pk_der_b64.clone();
+        let client_clone = Arc::new(client.clone());
+        let keys_clone = Arc::new(keys.clone());
         tokio::spawn(async move {
             let grpc_server = GrpcServer::default(); // Uses port 50001
             log::info!("Starting gRPC admin server on port {}", grpc_server.port);
-            if let Err(e) = grpc_server.start(db_clone, election_clone).await {
+            if let Err(e) = grpc_server.start(db_clone, elections_clone, pk_der_b64_clone, client_clone, keys_clone).await {
                 log::error!("gRPC server failed: {}", e);
             }
         });

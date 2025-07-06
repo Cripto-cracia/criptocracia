@@ -4,7 +4,7 @@ use sqlx::{Pool, Sqlite, SqlitePool, Row};
 use std::{fs, path::Path};
 
 use crate::election::{Election, Status};
-use crate::types::{Candidate, Voter};
+use crate::types::Candidate;
 
 /// Database connection pool
 pub struct Database {
@@ -104,14 +104,33 @@ impl Database {
         .execute(&self.pool)
         .await?;
 
-        // Create voters table
+
+        // Create used_tokens table to track used tokens per election
         sqlx::query(
             r#"
-            CREATE TABLE IF NOT EXISTS voters (
+            CREATE TABLE IF NOT EXISTS used_tokens (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                pubkey TEXT NOT NULL UNIQUE,
-                reference TEXT NOT NULL,
-                created_at INTEGER NOT NULL
+                election_id TEXT NOT NULL,
+                token_hash TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY (election_id) REFERENCES elections(id),
+                UNIQUE(election_id, token_hash)
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Create election_voters table to track authorized voters per election
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS election_voters (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                election_id TEXT NOT NULL,
+                voter_pubkey TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY (election_id) REFERENCES elections(id),
+                UNIQUE(election_id, voter_pubkey)
             )
             "#,
         )
@@ -202,7 +221,7 @@ impl Database {
             )
             .bind(election_id)
             .bind(candidate.id as i64)
-            .bind(candidate.name)
+            .bind(&candidate.name)
             .execute(&self.pool)
             .await?;
         }
@@ -228,38 +247,6 @@ impl Database {
         Ok(())
     }
 
-    /// Insert or update voters
-    pub async fn upsert_voters(&self, voters: &[Voter]) -> Result<()> {
-        let now = Utc::now().timestamp();
-        
-        for voter in voters {
-            // Convert pubkey to npub format if it's hex
-            let npub = if voter.pubkey.starts_with("npub") {
-                voter.pubkey.clone()
-            } else {
-                // For hex keys, we'll store them as-is for now
-                // In a real implementation, you might want to convert to npub
-                voter.pubkey.clone()
-            };
-
-            sqlx::query(
-                r#"
-                INSERT INTO voters (pubkey, reference, created_at)
-                VALUES (?, ?, ?)
-                ON CONFLICT(pubkey) DO UPDATE SET
-                reference = excluded.reference
-                "#,
-            )
-            .bind(&npub)
-            .bind(&voter.name)
-            .bind(now)
-            .execute(&self.pool)
-            .await?;
-        }
-
-        log::info!("Upserted {} voters into database", voters.len());
-        Ok(())
-    }
 
     /// Get all elections
     #[allow(dead_code)]
@@ -313,27 +300,105 @@ impl Database {
         Ok(candidates)
     }
 
-    /// Get all voters
-    #[allow(dead_code)]
-    pub async fn get_voters(&self, limit: u32, offset: u32) -> Result<Vec<VoterRecord>> {
-        let limit = if limit == 0 { 100 } else { limit.min(1000) }; // Default limit, max 1000
-        
-        let rows = sqlx::query("SELECT * FROM voters ORDER BY reference LIMIT ? OFFSET ?")
-            .bind(limit as i64)
-            .bind(offset as i64)
+
+    /// Load all elections from database
+    pub async fn load_all_elections(&self) -> Result<Vec<ElectionRecord>> {
+        let rows = sqlx::query("SELECT * FROM elections ORDER BY created_at DESC")
             .fetch_all(&self.pool)
             .await?;
 
-        let voters = rows
+        let elections = rows
             .into_iter()
-            .map(|row| VoterRecord {
-                id: Some(row.get("id")),
-                pubkey: row.get("pubkey"),
-                reference: row.get("reference"),
+            .map(|row| ElectionRecord {
+                id: row.get("id"),
+                name: row.get("name"),
+                start_time: row.get("start_time"),
+                end_time: row.get("end_time"),
+                status: row.get("status"),
+                rsa_pub_key: row.get("rsa_pub_key"),
                 created_at: row.get("created_at"),
+                updated_at: row.get("updated_at"),
             })
             .collect();
 
+        Ok(elections)
+    }
+
+    /// Load authorized voters for an election
+    pub async fn load_election_voters(&self, election_id: &str) -> Result<Vec<String>> {
+        let rows = sqlx::query(
+            "SELECT voter_pubkey FROM election_voters WHERE election_id = ?"
+        )
+        .bind(election_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let voters = rows
+            .into_iter()
+            .map(|row| row.get("voter_pubkey"))
+            .collect();
+
         Ok(voters)
+    }
+
+    /// Load used tokens for an election
+    pub async fn load_used_tokens(&self, election_id: &str) -> Result<Vec<String>> {
+        let rows = sqlx::query(
+            "SELECT token_hash FROM used_tokens WHERE election_id = ?"
+        )
+        .bind(election_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let tokens = rows
+            .into_iter()
+            .map(|row| row.get("token_hash"))
+            .collect();
+
+        Ok(tokens)
+    }
+
+    /// Save authorized voters for an election
+    pub async fn save_election_voters(&self, election_id: &str, voters: &[String]) -> Result<()> {
+        let now = chrono::Utc::now().timestamp();
+        
+        for voter in voters {
+            sqlx::query(
+                r#"
+                INSERT INTO election_voters (election_id, voter_pubkey, created_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(election_id, voter_pubkey) DO NOTHING
+                "#,
+            )
+            .bind(election_id)
+            .bind(voter)
+            .bind(now)
+            .execute(&self.pool)
+            .await?;
+        }
+
+        log::debug!("Saved {} authorized voters for election {}", voters.len(), election_id);
+        Ok(())
+    }
+
+    /// Save used token for an election
+    pub async fn save_used_token(&self, election_id: &str, token_hash: &str) -> Result<()> {
+        let now = chrono::Utc::now().timestamp();
+        
+        sqlx::query(
+            r#"
+            INSERT INTO used_tokens (election_id, token_hash, created_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(election_id, token_hash) DO NOTHING
+            "#,
+        )
+        .bind(election_id)
+        .bind(token_hash)
+        .bind(now)
+        .execute(&self.pool)
+        .await?;
+
+        log::debug!("Saved used token for election {}", election_id);
+        Ok(())
     }
 }

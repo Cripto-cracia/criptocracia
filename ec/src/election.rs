@@ -10,6 +10,7 @@ use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
 use crate::Candidate;
+use crate::database::{ElectionRecord, CandidateRecord};
 
 /// Blind signature petition made by a voter.
 pub struct BlindTokenRequest {
@@ -68,6 +69,55 @@ impl Election {
             end_time,
             status: Status::Open,
             rsa_pub_key,
+        }
+    }
+
+    /// Restore an election from database records
+    pub fn from_database(
+        election_record: ElectionRecord,
+        candidate_records: Vec<CandidateRecord>,
+        authorized_voters: Vec<String>,
+        used_tokens: Vec<String>,
+    ) -> Self {
+        let status = match election_record.status.as_str() {
+            "open" => Status::Open,
+            "in-progress" => Status::InProgress,
+            "finished" => Status::Finished,
+            "canceled" => Status::Canceled,
+            _ => Status::Open,
+        };
+
+        let candidates = candidate_records
+            .into_iter()
+            .map(|c| Candidate::new(c.candidate_id as u8, c.name))
+            .collect();
+
+        let authorized_voters_set: HashSet<String> = authorized_voters.into_iter().collect();
+
+        let used_tokens_set: HashSet<BigUint> = used_tokens
+            .into_iter()
+            .filter_map(|token| {
+                match BigUint::parse_bytes(token.as_bytes(), 16) {
+                    Some(big_uint) => Some(big_uint),
+                    None => {
+                        log::warn!("Failed to parse used token: {}", token);
+                        None
+                    }
+                }
+            })
+            .collect();
+
+        Self {
+            id: election_record.id,
+            name: election_record.name,
+            authorized_voters: authorized_voters_set,
+            used_tokens: used_tokens_set,
+            votes: vec![], // We'll reconstruct votes from candidate vote counts if needed
+            candidates,
+            start_time: election_record.start_time as u64,
+            end_time: election_record.end_time as u64,
+            status,
+            rsa_pub_key: election_record.rsa_pub_key,
         }
     }
 
@@ -158,12 +208,50 @@ impl Election {
         Ok(())
     }
 
+    /// Save used token to database (to be called after receive_vote)
+    pub async fn save_used_token_to_db(&self, db: &crate::database::Database, h_n: &BigUint) -> Result<(), anyhow::Error> {
+        let token_hash = format!("{:x}", h_n);
+        db.save_used_token(&self.id, &token_hash).await?;
+        Ok(())
+    }
+
+    /// Save authorized voters to database  
+    pub async fn save_authorized_voters_to_db(&self, db: &crate::database::Database) -> Result<(), anyhow::Error> {
+        let voters: Vec<String> = self.authorized_voters.iter().cloned().collect();
+        db.save_election_voters(&self.id, &voters).await?;
+        Ok(())
+    }
+
+    /// Check if election should be in progress based on current time
+    pub fn should_be_in_progress(&self, current_time: u64) -> bool {
+        current_time >= self.start_time && current_time < self.end_time && self.status == Status::Open
+    }
+
+    /// Check if election should be finished based on current time
+    pub fn should_be_finished(&self, current_time: u64) -> bool {
+        current_time >= self.end_time && (self.status == Status::Open || self.status == Status::InProgress)
+    }
+
+    /// Update election status based on current time
+    /// Returns true if status was changed, false if no change needed
+    pub fn update_status_based_on_time(&mut self, current_time: u64) -> bool {
+        let old_status = self.status;
+        
+        if self.should_be_finished(current_time) {
+            self.status = Status::Finished;
+        } else if self.should_be_in_progress(current_time) {
+            self.status = Status::InProgress;
+        }
+        
+        old_status != self.status
+    }
+
     /// Returns a map candidate → number of votes.
     pub fn tally(&self) -> HashMap<Candidate, u32> {
         let mut counts = HashMap::new();
         for &v in &self.votes {
             if let Some(c) = self.candidates.iter().find(|c| c.id == v) {
-                *counts.entry(*c).or_insert(0) += 1;
+                *counts.entry(c.clone()).or_insert(0) += 1;
             }
         }
         counts

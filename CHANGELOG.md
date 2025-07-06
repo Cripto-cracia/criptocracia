@@ -8,13 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- gRPC admin API for election management operations
+- **Multi-Election Support Architecture**
+  - HashMap-based concurrent election management
+  - Each election maintains independent voter lists and state
+  - Unique election IDs for identification and isolation
+  - Database schema redesigned for per-election data organization
+- **Automatic Election Status Transitions**
+  - Elections automatically transition: Open → InProgress → Finished
+  - 30-second periodic timer checks all elections for status changes
+  - Status transitions based on start_time and end_time
+  - Automatic Nostr event publishing when status changes occur
+- **Enhanced gRPC Admin API**
   - AdminService with 6 core operations: AddVoter, AddElection, AddCandidate, GetElection, ListVoters, ListElections
+  - Per-election voter management (AddVoterRequest requires election_id)
+  - Automatic RSA key management (removed rsa_public_key from AddElectionRequest)
+  - Elections created via gRPC automatically published to Nostr
   - Server runs on port 50001 alongside existing Nostr-based voting system
   - Complete protobuf schema with proper validation and error handling
   - Comprehensive test suite with 16 test cases covering all scenarios
   - Full API documentation with usage examples for multiple languages
   - Thread-safe implementation using Arc<Mutex> patterns for concurrency
+- **Database State Restoration**
+  - EC loads elections from database on startup instead of creating demo data
+  - Persistent election, candidate, and voter state across restarts
+  - Used token tracking per election for double-voting prevention
+  - Clean startup without placeholder or demo elections
 - Docker deployment configuration for Digital Ocean App Platform
   - Multi-stage Dockerfile optimized for production
   - Docker Compose setup for local development
@@ -35,15 +53,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Flexible deployment configurations
 
 ### Changed
-- Refactored synchronization primitives from std::sync::Mutex to tokio::sync::Mutex
+- **Fundamental Architecture Refactoring**
+  - Migrated from single election to multi-election HashMap architecture
+  - Refactored synchronization primitives from std::sync::Mutex to tokio::sync::Mutex
   - Improved async/await compatibility throughout the codebase
   - Better performance for concurrent operations
   - Non-blocking database and election state operations
-- Enhanced voter registration to support both npub and hex formats
+- **Voter Management System Overhaul**
+  - Changed from global voter registry to per-election voter management
+  - Removed global voters_pubkeys.json file dependency
+  - Enhanced voter registration to support both npub and hex formats
+  - Voter authorization now checked per election instead of globally
+- **Election Lifecycle Management**
+  - Eliminated placeholder election requirement through proper multi-election support
+  - Removed demo data creation on startup in favor of database restoration
+  - Automatic status management with real-time transitions
+- **gRPC API Improvements**
+  - Updated AddVoterRequest to require election_id parameter
+  - Removed rsa_public_key from AddElectionRequest (auto-managed)
+  - Enhanced validation and error handling for all operations
 - Reduced election start time from 15 minutes to 1 minute for faster testing
 - Updated documentation with new features and deployment options
 
 ### Fixed
+- **Critical Voter Authorization Bug**
+  - Fixed issue where voters added via gRPC were not registered in in-memory election state
+  - Voters can now successfully request blind signatures after being added via gRPC
+  - Added proper synchronization between database and in-memory voter authorization
+- **Election Status Management**
+  - Fixed placeholder election creation issue by implementing proper multi-election architecture
+  - Resolved voter table redundancy (consolidated to election_voters table)
+  - Fixed RSA key parameter handling in election creation
 - Improved error handling and validation across all components
 - Fixed type compatibility issues between different modules
 - Resolved compilation warnings and unused code
@@ -151,7 +191,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Release Notes
 
 ### Unreleased Version
-Major infrastructure improvements focusing on production readiness and administrative capabilities. Key additions include a complete gRPC admin API for programmatic election management, Docker deployment support for cloud platforms, and SQLite database integration for persistent data storage. The refactoring to async-aware synchronization primitives significantly improves performance and scalability.
+Major architectural overhaul focusing on multi-election support, automated election lifecycle management, and enhanced administrative capabilities. The system now supports concurrent elections with HashMap-based architecture, automatic status transitions, and database state restoration. Key additions include a comprehensive gRPC admin API with per-election voter management, Docker deployment support, and SQLite database integration. Critical bug fixes ensure proper voter authorization synchronization between database and in-memory state. The refactoring to async-aware synchronization primitives and elimination of demo data significantly improves performance, reliability, and production readiness.
 
 ### Version 0.1.1
 This release focuses on stability improvements and enhanced voter registration support. The major addition is support for both npub (Bech32) and hex formats for voter public keys, making the system more user-friendly. Comprehensive testing was added to ensure cryptographic operations work correctly.
