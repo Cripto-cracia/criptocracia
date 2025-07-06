@@ -12,24 +12,24 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy workspace files
+# Copy workspace files  
 COPY Cargo.toml Cargo.lock ./
 COPY ec/Cargo.toml ./ec/
-
-# Create EC-only workspace configuration
-RUN sed -i 's/members = \[/members = \[/' Cargo.toml && \
-    sed -i '/    "voter",/d' Cargo.toml
+COPY voter/Cargo.toml ./voter/
 
 # Copy EC source code and build files
 COPY ec/src ./ec/src
 COPY ec/build.rs ./ec/
 COPY ec/proto ./ec/proto
 
+# Create minimal voter stub to satisfy workspace requirements
+RUN mkdir -p voter/src && echo 'fn main() {}' > voter/src/main.rs
+
 # Copy examples for testing
 COPY examples ./examples
 
-# Build the electoral commission binary in release mode
-RUN cargo build --release --bin ec
+# Build only the EC package (no workspace modification needed)
+RUN cargo build --release --package ec
 
 # Runtime stage with minimal base image
 FROM debian:bookworm-slim
