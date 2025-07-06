@@ -1,15 +1,15 @@
 use serde::{Deserialize, Serialize};
 
 /// The candidates are represented by numbers
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct Candidate {
     pub id: u8,
-    pub name: &'static str,
+    pub name: String,
 }
 
 impl Candidate {
-    pub fn new(id: u8, name: &'static str) -> Self {
-        Self { id, name }
+    pub fn new(id: u8, name: impl Into<String>) -> Self {
+        Self { id, name: name.into() }
     }
 }
 
@@ -48,7 +48,7 @@ mod tests {
     #[test]
     fn test_candidate_new_and_eq() {
         let a = Candidate::new(5, "X");
-        let b = Candidate { id: 5, name: "X" };
+        let b = Candidate { id: 5, name: "X".to_string() };
         assert_eq!(a, b);
     }
 

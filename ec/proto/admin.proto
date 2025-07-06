@@ -27,6 +27,7 @@ service AdminService {
 message AddVoterRequest {
     string name = 1;
     string pubkey = 2;
+    string election_id = 3;
 }
 
 // Response for adding a voter
@@ -42,7 +43,6 @@ message AddElectionRequest {
     uint64 start_time = 2;
     uint64 duration = 3;
     repeated CandidateInfo candidates = 4;
-    string rsa_public_key = 5;
 }
 
 // Response for adding an election
@@ -81,6 +81,7 @@ message GetElectionResponse {
 message ListVotersRequest {
     uint32 limit = 1;
     uint32 offset = 2;
+    string election_id = 3;
 }
 
 // Response with voters list

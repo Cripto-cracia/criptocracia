@@ -127,15 +127,22 @@ EC:
 struct Election {
     id: String,
     name: String,
-    authorized_voters: HashSet<String>,  // Registered pubkeys
+    authorized_voters: HashSet<String>,  // Per-election registered pubkeys
     used_tokens: HashSet<BigUint>,       // Prevent double voting
     votes: Vec<u8>,                      // Candidate IDs
     candidates: Vec<Candidate>,
     start_time: u64,
     end_time: u64,
-    status: Status,                      // Open/InProgress/Finished
-    rsa_pub_key: String,                 // For blind signatures
+    status: Status,                      // Open/InProgress/Finished/Canceled
+    rsa_pub_key: String,                 // EC's RSA public key (DER base64)
 }
+
+// EC maintains multiple elections in HashMap
+Arc<Mutex<HashMap<String, Election>>>   // election_id -> Election
+
+// Status transitions (automatic, 30s intervals):
+// Open -> InProgress (when current_time >= start_time)
+// InProgress -> Finished (when current_time >= end_time)
 ```
 
 ### Voter State
@@ -176,13 +183,21 @@ struct App {
 ## Configuration Management
 
 ### Electoral Commission
-- `voters_pubkeys.json`: Authorized voter public keys
-- `ec_private.pem`: RSA private key for blind signatures
-- `ec_public.pem`: RSA public key (shared with voters)
+- `{dir}/elections.db`: SQLite database for elections, candidates, per-election voters, used tokens
+- `ec_private.pem`: RSA private key for blind signatures (or EC_PRIVATE_KEY env var)
+- `ec_public.pem`: RSA public key shared with voters (or EC_PUBLIC_KEY env var)
+- Database state restoration: Elections loaded from database on startup
+- Multi-election architecture: HashMap-based concurrent election support
 
 ### Voter Client  
 - `~/.voter/settings.toml`: Nostr keys, EC pubkey, relay configuration
 - In-memory state: Voting session data, received tokens
+
+### Database Schema
+- **elections**: id, name, start_time, end_time, status, rsa_pub_key, created_at, updated_at
+- **candidates**: election_id, candidate_id, name
+- **election_voters**: election_id, voter_pubkey (per-election authorization)
+- **used_tokens**: election_id, token_hash (prevent double voting)
 
 ## Deployment Architecture
 
@@ -209,7 +224,16 @@ cargo build --release
 - Election timing and coordination
 - Result verification and archival
 
-## Future Enhancements
+## Recent Enhancements
+
+### Completed Features
+- **Multi-Election Support**: HashMap-based architecture for concurrent elections
+- **Automatic Status Transitions**: Open → InProgress → Finished based on timing
+- **gRPC Admin API**: Complete election and voter management capabilities
+- **Database State Restoration**: EC loads elections from database on startup
+- **Per-Election Voter Management**: Voters authorized per election rather than globally
+- **Automatic Nostr Publishing**: Elections created via gRPC auto-publish to Nostr
+- **Streamlined RSA Key Management**: EC uses its own keys automatically
 
 ### Planned Features (from TODO)
 - Registration token system for dynamic voter enrollment

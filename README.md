@@ -24,11 +24,14 @@ Derived from the initial consultation, the key security properties for this syst
 Registered users with a Nostr key pair (public and private). The public key (voter_pk) identifies the voter to the Electoral Commission.
 
 ## Electoral Commission (EC)
-- Maintains a record of the public keys of authorized voters.
+- Maintains a record of authorized voters per election in database.
+- Supports multiple concurrent elections via HashMap architecture.
 - Issues anonymous voting tokens using blind signatures.
-- Receives encrypted votes.
-- Verifies the validity of the tokens and prevents double voting.
-- Performs and publish in Nostr the final count
+- Receives encrypted votes and verifies token validity.
+- Prevents double voting via nonce tracking.
+- Automatically transitions election status: Open → InProgress → Finished.
+- Performs real-time vote tallying and publishes results to Nostr.
+- Provides gRPC admin API for election and voter management.
 
 ## Nostr: Communication protocol used for:
 - Requesting blind signatures (via NIP-59 Gift Wrap).
@@ -38,7 +41,7 @@ Registered users with a Nostr key pair (public and private). The public key (vot
 
 Criptocracia is organized as a Cargo workspace containing two main binaries:
 
-* **ec**: The Electoral Commission service that registers voters, issues blind signatures on voting tokens, receives anonymized votes, verifies them, and publishes results.
+* **ec**: The Electoral Commission service that manages multiple elections, registers voters per election, issues blind signatures on voting tokens, receives anonymized votes, verifies them, and publishes results. Includes gRPC admin API.
 * **voter**: The client-side application used by registered voters to request a blind-signed token, unblind it, and cast their vote.
 
 Shared workspace dependencies include:
@@ -194,6 +197,12 @@ This project is licensed under MIT. See [LICENSE](LICENSE) for details.
 ## Todo list
 - [x] EC publish list of candidates as a Nostr event
 - [x] EC: Add manually voters pubkeys
+- [x] Multi-election support with HashMap architecture
+- [x] gRPC admin API for election and voter management
+- [x] Database state restoration on startup
+- [x] Automatic election status transitions
+- [x] Per-election voter authorization
+- [x] Automatic Nostr publishing for gRPC-created elections
 - [ ] EC create a list of registration tokens to be send to voters (v0.2)
 - [ ] Voter creates key pair and sign the token (v0.2)
 - [ ] Voter send the registration token to EC in a gift wrap (v0.2)

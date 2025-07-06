@@ -5,13 +5,15 @@ mod admin_service_tests {
     use super::super::admin_proto::*;
     use crate::database::Database;
     use crate::election::Election;
-    use crate::types::{Candidate, Voter};
+    use crate::types::Candidate;
+    use std::collections::HashMap;
     use std::sync::Arc;
     use tempfile::NamedTempFile;
     use tokio::sync::Mutex;
     use tonic::Request;
+    use nostr_sdk::{Client, Keys};
 
-    async fn create_test_service() -> (AdminServiceImpl, NamedTempFile) {
+    async fn create_test_service() -> (AdminServiceImpl, NamedTempFile, String) {
         // Create temporary database
         let temp_file = NamedTempFile::new().unwrap();
         let db = Arc::new(Database::new(temp_file.path()).await.unwrap());
@@ -25,35 +27,57 @@ mod admin_service_tests {
             3600,
             "test_rsa_key".to_string(),
         );
-        let election = Arc::new(Mutex::new(election));
-
-        (AdminServiceImpl::new(db, election), temp_file)
+        let election_id = election.id.clone();
+        
+        // Save election to database first
+        db.upsert_election(&election).await.unwrap();
+        
+        // Create elections HashMap
+        let mut elections = HashMap::new();
+        elections.insert(election_id.clone(), election);
+        let elections = Arc::new(Mutex::new(elections));
+        
+        // Create mock Nostr client and keys for testing
+        let keys = Keys::generate();
+        let client = Client::new(keys.clone());
+        
+        let service = AdminServiceImpl::new(
+            db,
+            elections,
+            "test_rsa_key".to_string(),
+            Arc::new(client),
+            Arc::new(keys),
+        );
+        
+        (service, temp_file, election_id)
     }
 
     #[tokio::test]
     async fn test_add_voter_success() {
-        let (service, _temp_file) = create_test_service().await;
+        let (service, _temp_file, election_id) = create_test_service().await;
 
         let request = Request::new(AddVoterRequest {
             name: "Test Voter".to_string(),
-            pubkey: "npub1test123456789abcdefghijklmnopqrstuvwxyz1234567890abcdefghijk".to_string(),
+            pubkey: "00001001063e6bf1b28f6514ac651afef7f51b2a792f0416a5e8273daa9eea6e".to_string(),
+            election_id: election_id.clone(),
         });
 
         let response = service.add_voter(request).await.unwrap();
         let inner = response.into_inner();
 
         assert!(inner.success);
-        assert_eq!(inner.message, "Voter added successfully");
+        assert_eq!(inner.message, "Voter added to election successfully");
         assert!(!inner.voter_id.is_empty());
     }
 
     #[tokio::test]
     async fn test_add_voter_empty_name() {
-        let (service, _temp_file) = create_test_service().await;
+        let (service, _temp_file, election_id) = create_test_service().await;
 
         let request = Request::new(AddVoterRequest {
             name: "".to_string(),
-            pubkey: "npub1test123456789abcdefghijklmnopqrstuvwxyz1234567890abcdefghijk".to_string(),
+            pubkey: "00001001063e6bf1b28f6514ac651afef7f51b2a792f0416a5e8273daa9eea6e".to_string(),
+            election_id: election_id.clone(),
         });
 
         let response = service.add_voter(request).await.unwrap();
@@ -66,11 +90,12 @@ mod admin_service_tests {
 
     #[tokio::test]
     async fn test_add_voter_invalid_pubkey() {
-        let (service, _temp_file) = create_test_service().await;
+        let (service, _temp_file, election_id) = create_test_service().await;
 
         let request = Request::new(AddVoterRequest {
             name: "Test Voter".to_string(),
             pubkey: "invalid_key".to_string(),
+            election_id: election_id.clone(),
         });
 
         let response = service.add_voter(request).await.unwrap();
@@ -83,7 +108,7 @@ mod admin_service_tests {
 
     #[tokio::test]
     async fn test_add_election_success() {
-        let (service, _temp_file) = create_test_service().await;
+        let (service, _temp_file, _election_id) = create_test_service().await;
 
         let candidates = vec![
             CandidateInfo {
@@ -103,7 +128,6 @@ mod admin_service_tests {
             start_time: 1234567890,
             duration: 3600,
             candidates,
-            rsa_public_key: "test_rsa_public_key".to_string(),
         });
 
         let response = service.add_election(request).await.unwrap();
@@ -116,14 +140,13 @@ mod admin_service_tests {
 
     #[tokio::test]
     async fn test_add_election_empty_name() {
-        let (service, _temp_file) = create_test_service().await;
+        let (service, _temp_file, _election_id) = create_test_service().await;
 
         let request = Request::new(AddElectionRequest {
             name: "".to_string(),
             start_time: 1234567890,
             duration: 3600,
             candidates: vec![],
-            rsa_public_key: "test_key".to_string(),
         });
 
         let response = service.add_election(request).await.unwrap();
@@ -136,14 +159,13 @@ mod admin_service_tests {
 
     #[tokio::test]
     async fn test_add_election_no_candidates() {
-        let (service, _temp_file) = create_test_service().await;
+        let (service, _temp_file, _election_id) = create_test_service().await;
 
         let request = Request::new(AddElectionRequest {
             name: "Test Election".to_string(),
             start_time: 1234567890,
             duration: 3600,
             candidates: vec![],
-            rsa_public_key: "test_key".to_string(),
         });
 
         let response = service.add_election(request).await.unwrap();
@@ -156,13 +178,7 @@ mod admin_service_tests {
 
     #[tokio::test]
     async fn test_add_candidate_success() {
-        let (service, _temp_file) = create_test_service().await;
-
-        // Get the election ID first
-        let election_id = {
-            let election = service.get_election_ref().lock().await;
-            election.id.clone()
-        };
+        let (service, _temp_file, election_id) = create_test_service().await;
 
         let request = Request::new(AddCandidateRequest {
             election_id,
@@ -179,7 +195,7 @@ mod admin_service_tests {
 
     #[tokio::test]
     async fn test_add_candidate_election_not_found() {
-        let (service, _temp_file) = create_test_service().await;
+        let (service, _temp_file, _election_id) = create_test_service().await;
 
         let request = Request::new(AddCandidateRequest {
             election_id: "nonexistent_election".to_string(),
@@ -196,13 +212,7 @@ mod admin_service_tests {
 
     #[tokio::test]
     async fn test_add_candidate_duplicate_id() {
-        let (service, _temp_file) = create_test_service().await;
-
-        // Get the election ID first
-        let election_id = {
-            let election = service.get_election_ref().lock().await;
-            election.id.clone()
-        };
+        let (service, _temp_file, election_id) = create_test_service().await;
 
         let request = Request::new(AddCandidateRequest {
             election_id,
@@ -219,13 +229,7 @@ mod admin_service_tests {
 
     #[tokio::test]
     async fn test_get_election_success() {
-        let (service, _temp_file) = create_test_service().await;
-
-        // Get the election ID first
-        let election_id = {
-            let election = service.get_election_ref().lock().await;
-            election.id.clone()
-        };
+        let (service, _temp_file, election_id) = create_test_service().await;
 
         let request = Request::new(GetElectionRequest { election_id });
 
@@ -243,7 +247,7 @@ mod admin_service_tests {
 
     #[tokio::test]
     async fn test_get_election_not_found() {
-        let (service, _temp_file) = create_test_service().await;
+        let (service, _temp_file, _election_id) = create_test_service().await;
 
         let request = Request::new(GetElectionRequest {
             election_id: "nonexistent_election".to_string(),
@@ -258,24 +262,19 @@ mod admin_service_tests {
 
     #[tokio::test]
     async fn test_list_voters() {
-        let (service, _temp_file) = create_test_service().await;
+        let (service, _temp_file, election_id) = create_test_service().await;
 
-        // Add some test voters first
-        let voters = vec![
-            Voter {
-                name: "Alice".to_string(),
-                pubkey: "npub1alice123".to_string(),
-            },
-            Voter {
-                name: "Bob".to_string(),
-                pubkey: "npub1bob456".to_string(),
-            },
+        // Add some test voters to the election first
+        let voter_pubkeys = vec![
+            "00001001063e6bf1b28f6514ac651afef7f51b2a792f0416a5e8273daa9eea6e".to_string(),
+            "3f55f3701e9b00dce27ab6cce6cf487fd5c4ba48f46d475926ebf916d53a9db1".to_string(),
         ];
-        service.get_db().upsert_voters(&voters).await.unwrap();
+        service.get_db().save_election_voters(&election_id, &voter_pubkeys).await.unwrap();
 
         let request = Request::new(ListVotersRequest {
             limit: 10,
             offset: 0,
+            election_id: election_id.clone(),
         });
 
         let response = service.list_voters(request).await.unwrap();
@@ -288,7 +287,7 @@ mod admin_service_tests {
 
     #[tokio::test]
     async fn test_list_elections() {
-        let (service, _temp_file) = create_test_service().await;
+        let (service, _temp_file, _election_id) = create_test_service().await;
 
         // The service already has one test election
         let request = Request::new(ListElectionsRequest {
@@ -308,12 +307,7 @@ mod admin_service_tests {
 
     #[tokio::test]
     async fn test_validation_candidate_id_zero() {
-        let (service, _temp_file) = create_test_service().await;
-
-        let election_id = {
-            let election = service.get_election_ref().lock().await;
-            election.id.clone()
-        };
+        let (service, _temp_file, election_id) = create_test_service().await;
 
         let request = Request::new(AddCandidateRequest {
             election_id,
@@ -334,12 +328,7 @@ mod admin_service_tests {
 
     #[tokio::test]
     async fn test_validation_candidate_id_too_large() {
-        let (service, _temp_file) = create_test_service().await;
-
-        let election_id = {
-            let election = service.get_election_ref().lock().await;
-            election.id.clone()
-        };
+        let (service, _temp_file, election_id) = create_test_service().await;
 
         let request = Request::new(AddCandidateRequest {
             election_id,
@@ -356,12 +345,7 @@ mod admin_service_tests {
 
     #[tokio::test]
     async fn test_validation_empty_candidate_name() {
-        let (service, _temp_file) = create_test_service().await;
-
-        let election_id = {
-            let election = service.get_election_ref().lock().await;
-            election.id.clone()
-        };
+        let (service, _temp_file, election_id) = create_test_service().await;
 
         let request = Request::new(AddCandidateRequest {
             election_id,

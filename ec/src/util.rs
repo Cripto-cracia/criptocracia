@@ -91,7 +91,7 @@ pub fn validate_required_files<P: AsRef<Path>>(app_dir: P) -> Result<()> {
     let app_dir = app_dir.as_ref();
     let mut missing_files = Vec::new();
 
-    let mut required_files = vec![("voters_pubkeys.json", "authorized voters list")];
+    let mut required_files = vec![];
 
     // Only require PEM files if environment variables are not set
     if std::env::var("EC_PRIVATE_KEY").is_err() || std::env::var("EC_PUBLIC_KEY").is_err() {

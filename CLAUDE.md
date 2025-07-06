@@ -81,15 +81,20 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyzrjKKl...
 - `util.rs`: Cryptographic utilities, EC public key parsing
 
 ### Key Data Flow
-1. **Registration**: EC maintains authorized voter pubkeys in database and `voters_pubkeys.json`
-2. **Token Request**: Voter blinds nonce hash, sends via NIP-59 Gift Wrap
-3. **Token Issuance**: EC verifies voter authorization, issues blind signature
-4. **Vote Casting**: Voter unblinds token, sends vote with anonymous keypair
-5. **Result Publishing**: EC verifies tokens, tallies votes, publishes results to Nostr
+1. **Election Creation**: Elections created via gRPC admin API, automatically published to Nostr
+2. **Voter Registration**: Voters added per-election via gRPC, stored in database and in-memory election state  
+3. **Status Transitions**: Elections automatically transition Open → InProgress → Finished based on timing (30s intervals)
+4. **Token Request**: Voter blinds nonce hash, sends via NIP-59 Gift Wrap
+5. **Token Issuance**: EC verifies voter authorization per election, issues blind signature
+6. **Vote Casting**: Voter unblinds token, sends vote with anonymous keypair
+7. **Result Publishing**: EC verifies tokens, tallies votes, publishes results to Nostr
 
 ### Admin API (gRPC)
 - **Port**: 50001 (localhost only)
 - **Services**: AddVoter, AddElection, AddCandidate, GetElection, ListVoters, ListElections
+- **Per-Election Voters**: Voters are managed per election (requires election_id)
+- **Automatic RSA Keys**: Elections use EC's RSA key automatically (no parameter needed)
+- **Auto Nostr Publishing**: Elections created via gRPC are automatically published to Nostr
 - **Authentication**: None (secure network access required)
 - **Documentation**: See `GRPC_API.md` for complete API reference
 - **Example Client**: Run `cargo run --example grpc_client --bin ec`
@@ -101,10 +106,16 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyzrjKKl...
 - **Relay**: Uses `wss://relay.mostro.network` for message transport
 
 ### Configuration Files
-- `{dir}/voters_pubkeys.json`: Authorized voter public keys in the specified directory
-- `{dir}/elections.db`: SQLite database for persistent election, candidate, and voter data
+- `{dir}/elections.db`: SQLite database for persistent election, candidate, and per-election voter data
 - `~/.voter/settings.toml`: Voter configuration (Nostr keys, EC pubkey, relays)
 - RSA key pairs: Specified via `EC_PRIVATE_KEY` and `EC_PUBLIC_KEY` environment variables (PEM content) or files in current directory
+
+### Election Management
+- **Multi-Election Support**: System supports multiple concurrent elections via HashMap architecture
+- **Database State Restoration**: EC loads elections from database on startup (no demo data)
+- **Automatic Status Transitions**: Elections transition Open → InProgress → Finished based on start/end times
+- **Status Check Interval**: 30-second periodic timer checks all elections for status changes
+- **Nostr Publishing**: Status changes automatically trigger Nostr event publishing
 
 ### Security Model
 - Voter anonymity via blind signatures and random keypairs for vote casting

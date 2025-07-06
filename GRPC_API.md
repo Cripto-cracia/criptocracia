@@ -29,13 +29,14 @@ Starting gRPC admin server on port 50001
 
 ### AddVoter
 
-Add a new voter to the authorized voters list.
+Add a new voter to the authorized voters list for a specific election.
 
 **Request:**
 ```protobuf
 message AddVoterRequest {
-    string name = 1;      // Human-readable name
-    string pubkey = 2;    // Nostr public key (hex or npub format)
+    string name = 1;        // Human-readable name
+    string pubkey = 2;      // Nostr public key (hex or npub format)
+    string election_id = 3; // Target election ID (required)
 }
 ```
 
@@ -51,7 +52,8 @@ message AddVoterResponse {
 **Validation:**
 - Name cannot be empty
 - Public key must be valid hex (64+ chars) or npub format
-- Public key must be unique
+- Election ID cannot be empty
+- Election must exist
 
 ### AddElection
 
@@ -64,7 +66,7 @@ message AddElectionRequest {
     uint64 start_time = 2;               // Unix timestamp
     uint64 duration = 3;                 // Duration in seconds
     repeated CandidateInfo candidates = 4; // List of candidates
-    string rsa_public_key = 5;           // RSA public key for blind signatures
+    // Note: RSA public key is automatically provided by the EC
 }
 ```
 
@@ -132,13 +134,14 @@ message GetElectionResponse {
 
 ### ListVoters
 
-List registered voters with pagination.
+List registered voters for a specific election with pagination.
 
 **Request:**
 ```protobuf
 message ListVotersRequest {
-    uint32 limit = 1;   // Max records to return (default: 100, max: 1000)
-    uint32 offset = 2;  // Number of records to skip
+    uint32 limit = 1;       // Max records to return (default: 100, max: 1000)
+    uint32 offset = 2;      // Number of records to skip
+    string election_id = 3; // Election ID to list voters for (required)
 }
 ```
 
@@ -226,6 +229,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let request = Request::new(AddVoterRequest {
         name: "Alice Smith".to_string(),
         pubkey: "npub1alice123456789abcdefghijklmnopqrstuvwxyz1234567890abcdefg".to_string(),
+        election_id: "your-election-id".to_string(),
     });
 
     let response = client.add_voter(request).await?;
@@ -248,7 +252,8 @@ def add_voter():
         
         request = admin_pb2.AddVoterRequest(
             name="Bob Johnson",
-            pubkey="npub1bob456789abcdefghijklmnopqrstuvwxyz1234567890abcdefghijk"
+            pubkey="npub1bob456789abcdefghijklmnopqrstuvwxyz1234567890abcdefghijk",
+            election_id="your-election-id"
         )
         
         response = stub.AddVoter(request)
@@ -271,7 +276,8 @@ grpcurl -plaintext localhost:50001 list
 # Add a voter
 grpcurl -plaintext -d '{
   "name": "Charlie Brown",
-  "pubkey": "npub1charlie123456789abcdefghijklmnopqrstuvwxyz1234567890abcd"
+  "pubkey": "npub1charlie123456789abcdefghijklmnopqrstuvwxyz1234567890abcd",
+  "election_id": "your-election-id"
 }' localhost:50001 admin.AdminService/AddVoter
 
 # Get election details
@@ -282,7 +288,8 @@ grpcurl -plaintext -d '{
 # List voters
 grpcurl -plaintext -d '{
   "limit": 10,
-  "offset": 0
+  "offset": 0,
+  "election_id": "your-election-id"
 }' localhost:50001 admin.AdminService/ListVoters
 ```
 
@@ -333,5 +340,26 @@ Example error response:
 The gRPC server runs alongside the main Nostr-based voting system:
 - Shares the same database and election state
 - Changes via gRPC are immediately reflected in the voting system
+- Elections created via gRPC are automatically published to Nostr
+- Automatic status transitions based on start/end times (30s intervals)
+- Per-election voter management with in-memory and database synchronization
 - Both systems can operate concurrently
 - No restart required for configuration changes
+
+## New Features
+
+### Multi-Election Support
+- System supports multiple concurrent elections via HashMap architecture
+- Each election maintains its own voter list and authorization state
+- Elections are identified by unique IDs generated during creation
+
+### Automatic Election Management
+- Elections automatically transition: Open → InProgress → Finished
+- Status transitions based on start_time and end_time
+- 30-second periodic checks for all elections
+- Status changes trigger automatic Nostr event publishing
+
+### Streamlined RSA Key Management
+- Electoral Commission's RSA key pair is used automatically for all elections
+- No need to provide RSA public key in AddElectionRequest
+- Keys loaded from environment variables or PEM files on startup

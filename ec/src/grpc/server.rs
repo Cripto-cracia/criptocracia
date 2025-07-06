@@ -1,4 +1,6 @@
 use anyhow::Result;
+use nostr_sdk::{Client, Keys};
+use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -26,9 +28,12 @@ impl GrpcServer {
     pub async fn start(
         &self,
         db: Arc<Database>,
-        election: Arc<Mutex<Election>>,
+        elections: Arc<Mutex<HashMap<String, Election>>>,
+        rsa_public_key: String,
+        client: Arc<Client>,
+        keys: Arc<Keys>,
     ) -> Result<()> {
-        let admin_service = AdminServiceImpl::new(db, election);
+        let admin_service = AdminServiceImpl::new(db, elections, rsa_public_key, client, keys);
         
         log::info!("Starting gRPC server on {}", self.addr);
         
