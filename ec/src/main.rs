@@ -5,7 +5,7 @@ mod types;
 mod util;
 
 use crate::database::Database;
-use crate::election::{Election, Status};
+use crate::election::Election;
 use crate::grpc::server::GrpcServer;
 use crate::util::{load_keys, load_keys_from_pem, setup_logger, validate_required_files};
 
@@ -296,10 +296,9 @@ async fn main() -> Result<()> {
                             };
                             // Find an election where this voter is authorized
                             let mut blind_sig = None;
-                            let mut target_election_id = None;
                             {
                                 let mut elections_guard = elections.lock().await;
-                                for (election_id, election) in elections_guard.iter_mut() {
+                                for (_election_id, election) in elections_guard.iter_mut() {
                                     let req_copy = BlindTokenRequest {
                                         voter_pk: req.voter_pk.clone(),
                                         blinded_h_n: req.blinded_h_n.clone(),
@@ -307,7 +306,6 @@ async fn main() -> Result<()> {
                                     match election.issue_token(req_copy, sk.clone()) {
                                         Ok(token) => {
                                             blind_sig = Some(token);
-                                            target_election_id = Some(election_id.clone());
                                             break;
                                         }
                                         Err(_) => continue, // Try next election
@@ -404,15 +402,15 @@ async fn main() -> Result<()> {
 
                             // Try to receive vote in an appropriate election
                             let mut vote_accepted = false;
-                            let mut target_election_id = None;
                             let mut tally = HashMap::new();
+                            let mut election_id_for_results = String::new();
                             {
                                 let mut elections_guard = elections.lock().await;
                                 for (election_id, election) in elections_guard.iter_mut() {
                                     match election.receive_vote(h_n.clone(), vote) {
                                         Ok(()) => {
                                             vote_accepted = true;
-                                            target_election_id = Some(election_id.clone());
+                                            election_id_for_results = election_id.clone();
                                             
                                             // Save used token to database
                                             if let Err(e) = election.save_used_token_to_db(&db, &h_n).await {
@@ -433,7 +431,7 @@ async fn main() -> Result<()> {
                                 continue;
                             }
                             
-                            let election_id = target_election_id.unwrap();
+                            let election_id = election_id_for_results;
                             
                             let mut results = String::new();
                             let mut json_results: Vec<(u8, u32)> = Vec::new();
