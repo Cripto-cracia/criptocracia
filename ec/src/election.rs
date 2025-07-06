@@ -215,12 +215,6 @@ impl Election {
         Ok(())
     }
 
-    /// Save authorized voters to database  
-    pub async fn save_authorized_voters_to_db(&self, db: &crate::database::Database) -> Result<(), anyhow::Error> {
-        let voters: Vec<String> = self.authorized_voters.iter().cloned().collect();
-        db.save_election_voters(&self.id, &voters).await?;
-        Ok(())
-    }
 
     /// Check if election should be in progress based on current time
     pub fn should_be_in_progress(&self, current_time: u64) -> bool {
