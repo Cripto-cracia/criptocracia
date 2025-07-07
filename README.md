@@ -131,9 +131,16 @@ The EC is the central authority that manages elections and maintains voter anony
 - **voters_pubkeys.json**: Legacy voter authorization file (database takes precedence)
 - **app.log**: Application logs with configurable verbosity
 
-## Nostr: Communication protocol used for:
-- Requesting blind signatures (via NIP-59 Gift Wrap).
-- Casting encrypted votes (via NIP-59 Gift Wrap).
+## Nostr Integration
+
+Nostr serves as the decentralized communication protocol for:
+- **Public election announcements** (Kind 35000 addressable events)
+- **Real-time vote result publishing** (Kind 35001 events)  
+- **Encrypted voter-EC communication** (NIP-59 Gift Wrap)
+  - Requesting blind signatures
+  - Casting encrypted votes
+
+📋 **For detailed Nostr protocol documentation, see [NOSTR.md](NOSTR.md)**
 
 ## Architecture
 

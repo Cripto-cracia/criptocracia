@@ -366,8 +366,12 @@ async fn main() -> Result<()> {
                             };
                             // Encode token to Base64
                             let blind_sig_b64 = general_purpose::STANDARD.encode(blind_sig);
-                            let response =
-                                Message::new(message.id.clone(), 1, blind_sig_b64.clone());
+                            let response = if let Some(election_id) = &message.election_id {
+                                Message::new_with_election(message.id.clone(), 1, blind_sig_b64.clone(), election_id.clone())
+                            } else {
+                                // Fallback for legacy messages without election_id
+                                Message::new(message.id.clone(), 1, blind_sig_b64.clone())
+                            };
                             // Creates a "rumor" with the hash of the nonce.
                             let rumor: UnsignedEvent = EventBuilder::text_note(response.as_json())
                                 .build(keys.public_key());
