@@ -469,10 +469,11 @@ async fn main() -> Result<(), anyhow::Error> {
                                 let blinded_b64 = general_purpose::STANDARD.encode(blinded_h_n);
 
                                 if let Some(ref election_id) = election_id {
-                                    let message = Message::new(
-                                        election_id.clone(),
+                                    let message = Message::new_with_election(
+                                        format!("token_request_{}", chrono::Utc::now().timestamp()),
                                         1,
                                         blinded_b64,
+                                        election_id.clone(),
                                     );
                                     let message_json = serde_json::to_string(&message)?;
                                     log::info!("Token request content: {}", message_json);
@@ -542,10 +543,11 @@ async fn main() -> Result<(), anyhow::Error> {
                                     // h_n:token:r:candidate_id
                                     let candidate_id = c.id;
                                     let vote_payload = format!("{h_n_b64}:{token_b64}:{r_b64}:{candidate_id}");
-                                    let message = Message::new(
-                                        election_id,
+                                    let message = Message::new_with_election(
+                                        format!("vote_{}", chrono::Utc::now().timestamp()),
                                         2,
                                         vote_payload,
+                                        election_id,
                                     );
                                     let message_json = serde_json::to_string(&message)?;
                                     log::info!("Vote to be sent: {}", message_json);

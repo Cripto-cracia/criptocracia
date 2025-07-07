@@ -310,21 +310,45 @@ async fn main() -> Result<()> {
                                 voter_pk: voter.to_string(),
                                 blinded_h_n,
                             };
-                            // Find an election where this voter is authorized
+                            // Handle election-specific or legacy token requests
                             let mut blind_sig = None;
                             {
                                 let mut elections_guard = elections.lock().await;
-                                for (_election_id, election) in elections_guard.iter_mut() {
-                                    let req_copy = BlindTokenRequest {
-                                        voter_pk: req.voter_pk.clone(),
-                                        blinded_h_n: req.blinded_h_n.clone(),
-                                    };
-                                    match election.issue_token(req_copy, sk.clone()) {
-                                        Ok(token) => {
-                                            blind_sig = Some(token);
-                                            break;
+                                
+                                if let Some(election_id) = &message.election_id {
+                                    // New protocol: election-specific token request
+                                    if let Some(election) = elections_guard.get_mut(election_id) {
+                                        let req_copy = BlindTokenRequest {
+                                            voter_pk: req.voter_pk.clone(),
+                                            blinded_h_n: req.blinded_h_n.clone(),
+                                        };
+                                        match election.issue_token(req_copy, sk.clone()) {
+                                            Ok(token) => {
+                                                blind_sig = Some(token);
+                                                log::info!("Token issued for election {}", election_id);
+                                            }
+                                            Err(e) => {
+                                                log::warn!("Token request failed for election {}: {}", election_id, e);
+                                            }
                                         }
-                                        Err(_) => continue, // Try next election
+                                    } else {
+                                        log::warn!("Election {} not found", election_id);
+                                    }
+                                } else {
+                                    // Legacy protocol: try all elections (for backward compatibility)
+                                    log::warn!("Legacy token request without election_id - trying all elections");
+                                    for (_election_id, election) in elections_guard.iter_mut() {
+                                        let req_copy = BlindTokenRequest {
+                                            voter_pk: req.voter_pk.clone(),
+                                            blinded_h_n: req.blinded_h_n.clone(),
+                                        };
+                                        match election.issue_token(req_copy, sk.clone()) {
+                                            Ok(token) => {
+                                                blind_sig = Some(token);
+                                                break;
+                                            }
+                                            Err(_) => continue, // Try next election
+                                        }
                                     }
                                 }
                             }
@@ -332,14 +356,22 @@ async fn main() -> Result<()> {
                             let blind_sig = match blind_sig {
                                 Some(sig) => sig,
                                 None => {
-                                    log::warn!("Voter {} not authorized for any election", voter);
+                                    if message.election_id.is_some() {
+                                        log::warn!("Voter {} not authorized for election {:?}", voter, message.election_id);
+                                    } else {
+                                        log::warn!("Voter {} not authorized for any election", voter);
+                                    }
                                     continue;
                                 }
                             };
                             // Encode token to Base64
                             let blind_sig_b64 = general_purpose::STANDARD.encode(blind_sig);
-                            let response =
-                                Message::new(message.id.clone(), 1, blind_sig_b64.clone());
+                            let response = if let Some(election_id) = &message.election_id {
+                                Message::new_with_election(message.id.clone(), 1, blind_sig_b64.clone(), election_id.clone())
+                            } else {
+                                // Fallback for legacy messages without election_id
+                                Message::new(message.id.clone(), 1, blind_sig_b64.clone())
+                            };
                             // Creates a "rumor" with the hash of the nonce.
                             let rumor: UnsignedEvent = EventBuilder::text_note(response.as_json())
                                 .build(keys.public_key());
@@ -416,39 +448,77 @@ async fn main() -> Result<()> {
                                 continue;
                             }
 
-                            // Try to receive vote in an appropriate election
+                            // Handle election-specific or legacy vote submission
                             let mut vote_accepted = false;
                             let mut tally = HashMap::new();
                             let mut election_id_for_results = String::new();
                             {
                                 let mut elections_guard = elections.lock().await;
-                                for (election_id, election) in elections_guard.iter_mut() {
-                                    match election.receive_vote(h_n.clone(), vote) {
-                                        Ok(()) => {
-                                            vote_accepted = true;
-                                            election_id_for_results = election_id.clone();
+                                
+                                if let Some(election_id) = &message.election_id {
+                                    // New protocol: election-specific vote submission
+                                    if let Some(election) = elections_guard.get_mut(election_id) {
+                                        match election.receive_vote(h_n.clone(), vote) {
+                                            Ok(()) => {
+                                                vote_accepted = true;
+                                                election_id_for_results = election_id.clone();
+                                                log::info!("Vote accepted for election {}", election_id);
 
-                                            // Save used token to database
-                                            if let Err(e) =
-                                                election.save_used_token_to_db(&db, &h_n).await
-                                            {
-                                                log::error!(
-                                                    "Failed to save used token to database: {}",
-                                                    e
-                                                );
+                                                // Save used token to database
+                                                if let Err(e) =
+                                                    election.save_used_token_to_db(&db, &h_n).await
+                                                {
+                                                    log::error!(
+                                                        "Failed to save used token to database: {}",
+                                                        e
+                                                    );
+                                                }
+
+                                                // Get tally for this election
+                                                tally = election.tally();
                                             }
-
-                                            // Get tally for this election
-                                            tally = election.tally();
-                                            break;
+                                            Err(e) => {
+                                                log::warn!("Vote rejected for election {}: {}", election_id, e);
+                                            }
                                         }
-                                        Err(_) => continue, // Try next election
+                                    } else {
+                                        log::warn!("Election {} not found for vote submission", election_id);
+                                    }
+                                } else {
+                                    // Legacy protocol: try all elections (for backward compatibility)
+                                    log::warn!("Legacy vote submission without election_id - trying all elections");
+                                    for (election_id, election) in elections_guard.iter_mut() {
+                                        match election.receive_vote(h_n.clone(), vote) {
+                                            Ok(()) => {
+                                                vote_accepted = true;
+                                                election_id_for_results = election_id.clone();
+
+                                                // Save used token to database
+                                                if let Err(e) =
+                                                    election.save_used_token_to_db(&db, &h_n).await
+                                                {
+                                                    log::error!(
+                                                        "Failed to save used token to database: {}",
+                                                        e
+                                                    );
+                                                }
+
+                                                // Get tally for this election
+                                                tally = election.tally();
+                                                break;
+                                            }
+                                            Err(_) => continue, // Try next election
+                                        }
                                     }
                                 }
                             }
 
                             if !vote_accepted {
-                                log::warn!("Vote not accepted by any election");
+                                if message.election_id.is_some() {
+                                    log::warn!("Vote not accepted for election {:?}", message.election_id);
+                                } else {
+                                    log::warn!("Vote not accepted by any election");
+                                }
                                 continue;
                             }
 
