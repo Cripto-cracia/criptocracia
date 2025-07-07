@@ -359,4 +359,98 @@ mod admin_service_tests {
         assert!(!inner.success);
         assert!(inner.message.contains("Candidate name cannot be empty"));
     }
+
+    #[tokio::test]
+    async fn test_cancel_election_success() {
+        let (service, _temp_file, election_id) = create_test_service().await;
+
+        let request = Request::new(CancelElectionRequest {
+            election_id: election_id.clone(),
+        });
+
+        let response = service.cancel_election(request).await.unwrap();
+        let inner = response.into_inner();
+
+        assert!(inner.success);
+        assert_eq!(inner.message, "Election canceled successfully");
+
+        // Verify the election status was updated in memory
+        let elections_guard = service.get_elections().lock().await;
+        let election = elections_guard.get(&election_id).unwrap();
+        assert_eq!(election.status, crate::election::Status::Canceled);
+    }
+
+    #[tokio::test]
+    async fn test_cancel_election_not_found() {
+        let (service, _temp_file, _election_id) = create_test_service().await;
+
+        let request = Request::new(CancelElectionRequest {
+            election_id: "nonexistent_election".to_string(),
+        });
+
+        let response = service.cancel_election(request).await.unwrap();
+        let inner = response.into_inner();
+
+        assert!(!inner.success);
+        assert_eq!(inner.message, "Election not found");
+    }
+
+    #[tokio::test]
+    async fn test_cancel_election_empty_id() {
+        let (service, _temp_file, _election_id) = create_test_service().await;
+
+        let request = Request::new(CancelElectionRequest {
+            election_id: "".to_string(),
+        });
+
+        let response = service.cancel_election(request).await.unwrap();
+        let inner = response.into_inner();
+
+        assert!(!inner.success);
+        assert_eq!(inner.message, "Election ID cannot be empty");
+    }
+
+    #[tokio::test]
+    async fn test_cancel_election_already_canceled() {
+        let (service, _temp_file, election_id) = create_test_service().await;
+
+        // First cancel the election
+        let request1 = Request::new(CancelElectionRequest {
+            election_id: election_id.clone(),
+        });
+        let response1 = service.cancel_election(request1).await.unwrap();
+        assert!(response1.into_inner().success);
+
+        // Try to cancel it again
+        let request2 = Request::new(CancelElectionRequest {
+            election_id: election_id.clone(),
+        });
+        let response2 = service.cancel_election(request2).await.unwrap();
+        let inner = response2.into_inner();
+
+        assert!(!inner.success);
+        assert_eq!(inner.message, "Election is already canceled");
+    }
+
+    #[tokio::test]
+    async fn test_cancel_election_database_update() {
+        let (service, _temp_file, election_id) = create_test_service().await;
+
+        let request = Request::new(CancelElectionRequest {
+            election_id: election_id.clone(),
+        });
+
+        let response = service.cancel_election(request).await.unwrap();
+        let inner = response.into_inner();
+
+        assert!(inner.success);
+
+        // Verify the election was updated in the database
+        let election_records = service.get_db().load_all_elections().await.unwrap();
+        let canceled_election = election_records
+            .iter()
+            .find(|e| e.id == election_id)
+            .unwrap();
+        assert_eq!(canceled_election.status, "canceled");
+    }
 }

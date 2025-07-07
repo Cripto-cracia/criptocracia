@@ -14,7 +14,7 @@ pub mod admin_proto {
 
 use admin_proto::{
     AddCandidateRequest, AddElectionRequest, AddVoterRequest, CandidateInfo, GetElectionRequest,
-    ListElectionsRequest, ListVotersRequest, admin_service_client::AdminServiceClient,
+    ListElectionsRequest, ListVotersRequest, CancelElectionRequest, admin_service_client::AdminServiceClient,
 };
 
 #[tokio::main]
@@ -201,6 +201,41 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     } else {
         println!("❌ Failed to list elections: {}", inner.message);
+    }
+
+    // 7. Cancel the election
+    println!("\n❌ Canceling election...");
+    let request = Request::new(CancelElectionRequest {
+        election_id: election_id.clone(),
+    });
+
+    let response = client.cancel_election(request).await?;
+    let inner = response.into_inner();
+
+    if inner.success {
+        println!("✅ Election canceled: {}", inner.message);
+    } else {
+        println!("❌ Failed to cancel election: {}", inner.message);
+    }
+
+    // 8. Verify election status after cancellation
+    println!("\n🔍 Verifying election status after cancellation...");
+    let request = Request::new(GetElectionRequest {
+        election_id: election_id.clone(),
+    });
+
+    let response = client.get_election(request).await?;
+    let inner = response.into_inner();
+
+    if inner.success {
+        if let Some(election) = inner.election {
+            println!("📊 Election Status: {}", election.status);
+            if election.status == "Canceled" {
+                println!("✅ Election successfully canceled and status updated");
+            }
+        }
+    } else {
+        println!("❌ Failed to get election status: {}", inner.message);
     }
 
     println!("\n🎉 Demo complete!");

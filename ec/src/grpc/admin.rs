@@ -43,6 +43,11 @@ impl AdminServiceImpl {
         &self.db
     }
 
+    #[cfg(test)]
+    pub fn get_elections(&self) -> &Arc<Mutex<HashMap<String, Election>>> {
+        &self.elections
+    }
+
     /// Convert ElectionStatus to string
     fn election_status_to_string(status: ElectionStatus) -> String {
         match status {
@@ -588,6 +593,77 @@ impl AdminService for AdminServiceImpl {
                     message: format!("Failed to list elections: {}", e),
                     elections: vec![],
                     total_count: 0,
+                }))
+            }
+        }
+    }
+
+    async fn cancel_election(
+        &self,
+        request: Request<CancelElectionRequest>,
+    ) -> Result<Response<CancelElectionResponse>, Status> {
+        let req = request.into_inner();
+
+        log::info!("Canceling election: {}", req.election_id);
+
+        // Validate election_id
+        if req.election_id.is_empty() {
+            return Ok(Response::new(CancelElectionResponse {
+                success: false,
+                message: "Election ID cannot be empty".to_string(),
+            }));
+        }
+
+        // Update election status in memory and get election for publishing
+        let election_clone = {
+            let mut elections_guard = self.elections.lock().await;
+
+            let election = match elections_guard.get_mut(&req.election_id) {
+                Some(e) => e,
+                None => {
+                    return Ok(Response::new(CancelElectionResponse {
+                        success: false,
+                        message: "Election not found".to_string(),
+                    }));
+                }
+            };
+
+            // Check if election is already canceled
+            if election.status == ElectionStatus::Canceled {
+                return Ok(Response::new(CancelElectionResponse {
+                    success: false,
+                    message: "Election is already canceled".to_string(),
+                }));
+            }
+
+            // Update status to canceled
+            election.status = ElectionStatus::Canceled;
+            log::info!("Updated election {} status to Canceled in memory", req.election_id);
+
+            election.clone()
+        };
+
+        // Update election in database
+        match self.db.upsert_election(&election_clone).await {
+            Ok(()) => {
+                log::info!("Successfully updated election {} in database", req.election_id);
+
+                // Publish updated election to Nostr
+                if let Err(e) = self.publish_election_to_nostr(&election_clone).await {
+                    log::error!("Failed to publish canceled election to Nostr: {}", e);
+                    // Don't fail the entire operation if Nostr publishing fails
+                }
+
+                Ok(Response::new(CancelElectionResponse {
+                    success: true,
+                    message: "Election canceled successfully".to_string(),
+                }))
+            }
+            Err(e) => {
+                log::error!("Failed to update canceled election in database: {}", e);
+                Ok(Response::new(CancelElectionResponse {
+                    success: false,
+                    message: format!("Failed to cancel election: {}", e),
                 }))
             }
         }

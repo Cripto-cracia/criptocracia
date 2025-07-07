@@ -21,6 +21,9 @@ service AdminService {
     
     // List all elections
     rpc ListElections(ListElectionsRequest) returns (ListElectionsResponse);
+    
+    // Cancel an election
+    rpc CancelElection(CancelElectionRequest) returns (CancelElectionResponse);
 }
 
 // Request to add a new voter
@@ -132,6 +135,17 @@ message ElectionInfo {
     uint64 created_at = 8;
     uint64 updated_at = 9;
     uint32 total_votes = 10;
+}
+
+// Request to cancel an election
+message CancelElectionRequest {
+    string election_id = 1;
+}
+
+// Response for canceling an election
+message CancelElectionResponse {
+    bool success = 1;
+    string message = 2;
 }
 
 // Election status enum
