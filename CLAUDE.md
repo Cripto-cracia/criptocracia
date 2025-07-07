@@ -41,6 +41,11 @@ openssl rsa -in ec_private.pem -pubout -out ec_public.pem
 # Nostr private key (required) - hex format
 export NOSTR_PRIVATE_KEY="e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c"
 
+# gRPC server bind IP (optional, defaults to localhost for security)
+export GRPC_BIND_IP="127.0.0.1"        # Default: localhost only (secure)
+export GRPC_BIND_IP="0.0.0.0"          # All interfaces (external access)
+export GRPC_BIND_IP="192.168.1.100"    # Specific interface
+
 # RSA key content (optional, falls back to files in current directory)
 export EC_PRIVATE_KEY="$(cat ec_private.pem)"
 export EC_PUBLIC_KEY="$(cat ec_public.pem)"
@@ -93,14 +98,15 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyzrjKKl...
 7. **Result Publishing**: EC verifies tokens, tallies votes, publishes results to Nostr
 
 ### Admin API (gRPC)
-- **Port**: 50001 (binds to all interfaces: 0.0.0.0)
-- **External Access**: Accepts connections from any IP address for remote administration
+- **Port**: 50001 (localhost by default, configurable via `GRPC_BIND_IP`)
+- **Security**: Defaults to localhost-only (127.0.0.1) for security
+- **External Access**: Set `GRPC_BIND_IP="0.0.0.0"` for remote administration
 - **Services**: AddVoter, AddElection, AddCandidate, GetElection, ListVoters, ListElections, CancelElection
 - **Per-Election Voters**: Voters are managed per election (requires election_id)
 - **Automatic RSA Keys**: Elections use EC's RSA key automatically (no parameter needed)
 - **Auto Nostr Publishing**: Elections created via gRPC are automatically published to Nostr
 - **Authentication**: None (secure network access required)
-- **Security**: Ensure proper firewall configuration for production deployments
+- **Configuration**: Use `GRPC_BIND_IP` environment variable for custom binding
 - **Documentation**: See `GRPC_API.md` for complete API reference
 - **Example Client**: Run `cargo run --example grpc_client --bin ec`
 

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use nostr_sdk::{Client, Keys};
 use std::collections::HashMap;
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tonic::transport::Server;
@@ -20,7 +20,17 @@ pub struct GrpcServer {
 impl GrpcServer {
     /// Create a new gRPC server instance
     pub fn new(port: u16) -> Self {
-        let addr = SocketAddr::from(([0, 0, 0, 0], port));
+        let bind_ip = std::env::var("GRPC_BIND_IP")
+            .unwrap_or_else(|_| "127.0.0.1".to_string());
+        
+        let addr = match bind_ip.parse::<IpAddr>() {
+            Ok(ip) => SocketAddr::new(ip, port),
+            Err(_) => {
+                log::warn!("Invalid GRPC_BIND_IP '{}', defaulting to localhost", bind_ip);
+                SocketAddr::from(([127, 0, 0, 1], port))
+            }
+        };
+        
         Self { port, addr }
     }
 
