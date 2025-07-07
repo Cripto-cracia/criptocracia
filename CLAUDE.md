@@ -93,12 +93,14 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyzrjKKl...
 7. **Result Publishing**: EC verifies tokens, tallies votes, publishes results to Nostr
 
 ### Admin API (gRPC)
-- **Port**: 50001 (localhost only)
-- **Services**: AddVoter, AddElection, AddCandidate, GetElection, ListVoters, ListElections
+- **Port**: 50001 (binds to all interfaces: 0.0.0.0)
+- **External Access**: Accepts connections from any IP address for remote administration
+- **Services**: AddVoter, AddElection, AddCandidate, GetElection, ListVoters, ListElections, CancelElection
 - **Per-Election Voters**: Voters are managed per election (requires election_id)
 - **Automatic RSA Keys**: Elections use EC's RSA key automatically (no parameter needed)
 - **Auto Nostr Publishing**: Elections created via gRPC are automatically published to Nostr
 - **Authentication**: None (secure network access required)
+- **Security**: Ensure proper firewall configuration for production deployments
 - **Documentation**: See `GRPC_API.md` for complete API reference
 - **Example Client**: Run `cargo run --example grpc_client --bin ec`
 

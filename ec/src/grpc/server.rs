@@ -20,7 +20,7 @@ pub struct GrpcServer {
 impl GrpcServer {
     /// Create a new gRPC server instance
     pub fn new(port: u16) -> Self {
-        let addr = SocketAddr::from(([127, 0, 0, 1], port));
+        let addr = SocketAddr::from(([0, 0, 0, 0], port));
         Self { port, addr }
     }
 
