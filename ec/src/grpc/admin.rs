@@ -23,23 +23,24 @@ pub struct AdminServiceImpl {
 impl AdminServiceImpl {
     /// Create a new AdminServiceImpl instance
     pub fn new(
-        db: Arc<Database>, 
-        elections: Arc<Mutex<HashMap<String, Election>>>, 
+        db: Arc<Database>,
+        elections: Arc<Mutex<HashMap<String, Election>>>,
         rsa_public_key: String,
         client: Arc<Client>,
         keys: Arc<Keys>,
     ) -> Self {
-        Self { db, elections, rsa_public_key, client, keys }
+        Self {
+            db,
+            elections,
+            rsa_public_key,
+            client,
+            keys,
+        }
     }
 
     #[cfg(test)]
     pub fn get_db(&self) -> &Arc<Database> {
         &self.db
-    }
-
-    #[cfg(test)]
-    pub fn get_elections_ref(&self) -> &Arc<Mutex<HashMap<String, Election>>> {
-        &self.elections
     }
 
     /// Convert ElectionStatus to string
@@ -82,54 +83,68 @@ impl AdminServiceImpl {
     }
 
     /// Validate voter public key format
-    fn validate_voter_pubkey(pubkey: &str) -> Result<(), Status> {
+    fn validate_voter_pubkey(pubkey: &str) -> Result<(), Box<Status>> {
         if pubkey.is_empty() {
-            return Err(Status::invalid_argument("Voter public key cannot be empty"));
+            return Err(Box::new(Status::invalid_argument(
+                "Voter public key cannot be empty",
+            )));
         }
 
         // Use Nostr SDK to validate the format (same as election.rs does)
         if pubkey.starts_with("npub") {
-            if let Err(_) = PublicKey::parse(pubkey) {
-                return Err(Status::invalid_argument("Invalid npub format"));
+            if PublicKey::parse(pubkey).is_err() {
+                return Err(Box::new(Status::invalid_argument("Invalid npub format")));
             }
-        } else {
-            if let Err(_) = PublicKey::from_hex(pubkey) {
-                return Err(Status::invalid_argument("Invalid hex pubkey format"));
-            }
+        } else if PublicKey::from_hex(pubkey).is_err() {
+            return Err(Box::new(Status::invalid_argument(
+                "Invalid hex pubkey format",
+            )));
         }
 
         Ok(())
     }
 
     /// Validate election name
-    fn validate_election_name(name: &str) -> Result<(), Status> {
+    fn validate_election_name(name: &str) -> Result<(), Box<Status>> {
         if name.is_empty() {
-            return Err(Status::invalid_argument("Election name cannot be empty"));
+            return Err(Box::new(Status::invalid_argument(
+                "Election name cannot be empty",
+            )));
         }
 
         if name.len() > 100 {
-            return Err(Status::invalid_argument("Election name is too long (max 100 characters)"));
+            return Err(Box::new(Status::invalid_argument(
+                "Election name is too long (max 100 characters)",
+            )));
         }
 
         Ok(())
     }
 
     /// Validate candidate data
-    fn validate_candidate(candidate_id: u32, name: &str) -> Result<(), Status> {
+    fn validate_candidate(candidate_id: u32, name: &str) -> Result<(), Box<Status>> {
         if candidate_id == 0 {
-            return Err(Status::invalid_argument("Candidate ID must be greater than 0"));
+            return Err(Box::new(Status::invalid_argument(
+                "Candidate ID must be greater than 0",
+            )));
         }
 
         if candidate_id > 255 {
-            return Err(Status::invalid_argument("Candidate ID must be less than 256"));
+            return Err(Box::new(Status::invalid_argument(
+                "Candidate ID must be less than 256",
+            )));
         }
 
         if name.is_empty() {
-            return Err(Status::invalid_argument("Candidate name cannot be empty"));
+            return Err(Box::new(Status::invalid_argument(
+                "Candidate name cannot be empty",
+            )));
         }
 
         if name.len() > 50 {
-            return Err(Status::invalid_argument("Candidate name is too long (max 50 characters)"));
+            return Err(Box::new(Status::invalid_argument(
+                "Candidate name is too long (max 50 characters)",
+            )));
         }
 
         Ok(())
@@ -148,8 +163,13 @@ impl AdminService for AdminServiceImpl {
         request: Request<AddVoterRequest>,
     ) -> Result<Response<AddVoterResponse>, Status> {
         let req = request.into_inner();
-        
-        log::info!("Adding voter: {} with pubkey: {} to election: {}", req.name, req.pubkey, req.election_id);
+
+        log::info!(
+            "Adding voter: {} with pubkey: {} to election: {}",
+            req.name,
+            req.pubkey,
+            req.election_id
+        );
 
         // Validate input
         if req.name.is_empty() {
@@ -189,20 +209,35 @@ impl AdminService for AdminServiceImpl {
         }
 
         // Add voter to election_voters table
-        match self.db.save_election_voters(&req.election_id, &[req.pubkey.clone()]).await {
+        match self
+            .db
+            .save_election_voters(&req.election_id, &[req.pubkey.clone()])
+            .await
+        {
             Ok(()) => {
                 // Also add voter to in-memory election's authorized_voters HashSet
                 {
                     let mut elections_guard = self.elections.lock().await;
                     if let Some(election) = elections_guard.get_mut(&req.election_id) {
                         election.register_voter(&req.pubkey);
-                        log::info!("Added voter {} to in-memory election {}", req.pubkey, req.election_id);
+                        log::info!(
+                            "Added voter {} to in-memory election {}",
+                            req.pubkey,
+                            req.election_id
+                        );
                     } else {
-                        log::error!("Election {} not found in memory after database save", req.election_id);
+                        log::error!(
+                            "Election {} not found in memory after database save",
+                            req.election_id
+                        );
                     }
                 }
-                
-                log::info!("Successfully added voter: {} to election: {}", req.name, req.election_id);
+
+                log::info!(
+                    "Successfully added voter: {} to election: {}",
+                    req.name,
+                    req.election_id
+                );
                 Ok(Response::new(AddVoterResponse {
                     success: true,
                     message: "Voter added to election successfully".to_string(),
@@ -225,7 +260,7 @@ impl AdminService for AdminServiceImpl {
         request: Request<AddElectionRequest>,
     ) -> Result<Response<AddElectionResponse>, Status> {
         let req = request.into_inner();
-        
+
         log::info!("Adding election: {}", req.name);
 
         // Validate input
@@ -272,8 +307,9 @@ impl AdminService for AdminServiceImpl {
             }
         }
 
-        // Convert candidates 
-        let candidates: Vec<Candidate> = req.candidates
+        // Convert candidates
+        let candidates: Vec<Candidate> = req
+            .candidates
             .iter()
             .map(|c| Candidate::new(c.id as u8, &c.name))
             .collect();
@@ -301,13 +337,13 @@ impl AdminService for AdminServiceImpl {
         match self.db.upsert_election(&election).await {
             Ok(()) => {
                 log::info!("Successfully added election: {}", election_name);
-                
+
                 // Publish election to Nostr
                 if let Err(e) = self.publish_election_to_nostr(&election).await {
                     log::error!("Failed to publish election to Nostr: {}", e);
                     // Don't fail the entire operation if Nostr publishing fails
                 }
-                
+
                 Ok(Response::new(AddElectionResponse {
                     success: true,
                     message: "Election added successfully".to_string(),
@@ -330,8 +366,12 @@ impl AdminService for AdminServiceImpl {
         request: Request<AddCandidateRequest>,
     ) -> Result<Response<AddCandidateResponse>, Status> {
         let req = request.into_inner();
-        
-        log::info!("Adding candidate: {} to election: {}", req.name, req.election_id);
+
+        log::info!(
+            "Adding candidate: {} to election: {}",
+            req.name,
+            req.election_id
+        );
 
         // Validate input
         if let Err(e) = Self::validate_candidate(req.candidate_id, &req.name) {
@@ -344,7 +384,7 @@ impl AdminService for AdminServiceImpl {
         // Check if election exists and add candidate
         let election_clone = {
             let mut elections_guard = self.elections.lock().await;
-            
+
             let election = match elections_guard.get_mut(&req.election_id) {
                 Some(e) => e,
                 None => {
@@ -356,7 +396,11 @@ impl AdminService for AdminServiceImpl {
             };
 
             // Check if candidate ID already exists
-            if election.candidates.iter().any(|c| c.id == req.candidate_id as u8) {
+            if election
+                .candidates
+                .iter()
+                .any(|c| c.id == req.candidate_id as u8)
+            {
                 return Ok(Response::new(AddCandidateResponse {
                     success: false,
                     message: "Candidate ID already exists".to_string(),
@@ -364,12 +408,9 @@ impl AdminService for AdminServiceImpl {
             }
 
             // Add candidate
-            let candidate = Candidate::new(
-                req.candidate_id as u8,
-                &req.name
-            );
+            let candidate = Candidate::new(req.candidate_id as u8, &req.name);
             election.candidates.push(candidate);
-            
+
             election.clone()
         };
 
@@ -396,11 +437,11 @@ impl AdminService for AdminServiceImpl {
         request: Request<GetElectionRequest>,
     ) -> Result<Response<GetElectionResponse>, Status> {
         let req = request.into_inner();
-        
+
         log::info!("Getting election: {}", req.election_id);
 
         let elections_guard = self.elections.lock().await;
-        
+
         let election = match elections_guard.get(&req.election_id) {
             Some(e) => e,
             None => {
@@ -413,7 +454,7 @@ impl AdminService for AdminServiceImpl {
         };
 
         let election_info = Self::election_to_info(election);
-        
+
         Ok(Response::new(GetElectionResponse {
             success: true,
             message: "Election retrieved successfully".to_string(),
@@ -426,8 +467,13 @@ impl AdminService for AdminServiceImpl {
         request: Request<ListVotersRequest>,
     ) -> Result<Response<ListVotersResponse>, Status> {
         let req = request.into_inner();
-        
-        log::info!("Listing voters for election: {} with limit: {}, offset: {}", req.election_id, req.limit, req.offset);
+
+        log::info!(
+            "Listing voters for election: {} with limit: {}, offset: {}",
+            req.election_id,
+            req.limit,
+            req.offset
+        );
 
         // Validate election_id
         if req.election_id.is_empty() {
@@ -457,13 +503,14 @@ impl AdminService for AdminServiceImpl {
             Ok(voter_pubkeys) => {
                 // Apply pagination
                 let offset = req.offset as usize;
-                let limit = if req.limit == 0 { 100 } else { req.limit.min(1000) } as usize;
-                
-                let paginated_voters: Vec<String> = voter_pubkeys
-                    .into_iter()
-                    .skip(offset)
-                    .take(limit)
-                    .collect();
+                let limit = if req.limit == 0 {
+                    100
+                } else {
+                    req.limit.min(1000)
+                } as usize;
+
+                let paginated_voters: Vec<String> =
+                    voter_pubkeys.into_iter().skip(offset).take(limit).collect();
 
                 let voter_infos: Vec<VoterInfo> = paginated_voters
                     .iter()
@@ -482,7 +529,11 @@ impl AdminService for AdminServiceImpl {
                 }))
             }
             Err(e) => {
-                log::error!("Failed to list voters for election {}: {}", req.election_id, e);
+                log::error!(
+                    "Failed to list voters for election {}: {}",
+                    req.election_id,
+                    e
+                );
                 Ok(Response::new(ListVotersResponse {
                     success: false,
                     message: format!("Failed to list voters: {}", e),
@@ -498,8 +549,12 @@ impl AdminService for AdminServiceImpl {
         request: Request<ListElectionsRequest>,
     ) -> Result<Response<ListElectionsResponse>, Status> {
         let req = request.into_inner();
-        
-        log::info!("Listing elections with limit: {}, offset: {}", req.limit, req.offset);
+
+        log::info!(
+            "Listing elections with limit: {}, offset: {}",
+            req.limit,
+            req.offset
+        );
 
         match self.db.get_elections(req.limit, req.offset).await {
             Ok(elections) => {
