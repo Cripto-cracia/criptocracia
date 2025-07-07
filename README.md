@@ -6,6 +6,90 @@
 
 **Criptocracia** is an experimental, trustless open-source electronic voting system built in Rust. It leverages blind RSA signatures to ensure vote secrecy, voter anonymity and integrity, and uses the Nostr protocol for decentralized, encrypted message transport.
 
+## Quick Start
+
+### Prerequisites
+
+- Rust 1.86.0 or later
+- OpenSSL (for RSA key generation)
+- SQLite development libraries
+- Protocol Buffers compiler (for gRPC)
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/grunch/criptocracia.git
+cd criptocracia
+
+# Install system dependencies (Ubuntu/Debian)
+sudo apt update
+sudo apt install -y cmake build-essential libsqlite3-dev pkg-config libssl-dev protobuf-compiler ca-certificates
+
+# Build the project
+cargo build --release
+```
+
+### Running the Electoral Commission
+
+1. **Generate RSA keys** (required for blind signatures):
+   ```bash
+   # Generate RSA private key (2048 bits)
+   openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out ec_private.pem
+   
+   # Extract public key
+   openssl rsa -in ec_private.pem -pubout -out ec_public.pem
+   ```
+
+2. **Set environment variables**:
+   ```bash
+   # Required: Nostr private key for EC identity
+   export NOSTR_PRIVATE_KEY="your_nostr_private_key_here"
+   
+   # Optional: RSA keys (falls back to files in current directory)
+   export EC_PRIVATE_KEY="$(cat ec_private.pem)"
+   export EC_PUBLIC_KEY="$(cat ec_public.pem)"
+   
+   # Optional: gRPC server binding (default: 127.0.0.1 for localhost only)
+   export GRPC_BIND_IP="0.0.0.0"  # For external access
+   ```
+
+3. **Start the Electoral Commission**:
+   ```bash
+   ./target/release/ec
+   ```
+
+### Running the Voter Client
+
+1. **Configure voter settings**:
+   ```bash
+   mkdir -p ~/.voter
+   # Edit ~/.voter/settings.toml with your configuration
+   ```
+
+2. **Start the voter client**:
+   ```bash
+   ./target/release/voter
+   ```
+
+### gRPC Admin API
+
+The EC provides a gRPC API for election management on port 50001:
+
+```bash
+# Run the example gRPC client
+cargo run --example grpc_client --bin ec
+```
+
+Available operations:
+- **AddElection**: Create new elections
+- **AddCandidate**: Add candidates to elections
+- **AddVoter**: Register voters for specific elections
+- **CancelElection**: Cancel ongoing elections
+- **GetElection**: Retrieve election details
+- **ListElections**: List all elections
+- **ListVoters**: List voters for an election
+
 ## Context
 The critical need for secure, transparent, and anonymous electronic‑voting systems is becoming ever more pressing, especially in settings where trust in central authorities is limited—addressing concerns that authoritarian regimes may use electoral systems to stay in power. The historical challenges of electoral fraud underscore the importance of exploring robust solutions. Modern cryptography provides powerful tools for building systems that can withstand manipulation and allow for public verification.
 
@@ -24,14 +108,28 @@ Derived from the initial consultation, the key security properties for this syst
 Registered users with a Nostr key pair (public and private). The public key (voter_pk) identifies the voter to the Electoral Commission.
 
 ## Electoral Commission (EC)
-- Maintains a record of authorized voters per election in database.
-- Supports multiple concurrent elections via HashMap architecture.
-- Issues anonymous voting tokens using blind signatures.
-- Receives encrypted votes and verifies token validity.
-- Prevents double voting via nonce tracking.
-- Automatically transitions election status: Open → InProgress → Finished.
-- Performs real-time vote tallying and publishes results to Nostr.
-- Provides gRPC admin API for election and voter management.
+
+The EC is the central authority that manages elections and maintains voter anonymity through blind signatures:
+
+### Key Features
+- **Multi-election support**: Manages multiple concurrent elections via HashMap architecture
+- **Database persistence**: SQLite database for elections, candidates, and voters
+- **Automatic status transitions**: Elections progress from Open → InProgress → Finished automatically
+- **Blind signature voting**: Issues anonymous voting tokens while preventing double voting
+- **Real-time tallying**: Publishes vote counts to Nostr after each vote
+- **gRPC admin API**: Complete election management interface
+- **Nostr integration**: Publishes election announcements and results
+
+### Election Status Flow
+1. **Open**: Election created, voters can request tokens
+2. **InProgress**: Voting period active (automatically transitions based on start_time)
+3. **Finished**: Voting ended, final results published (based on end_time)
+4. **Cancelled**: Election cancelled via admin API
+
+### Data Storage
+- **elections.db**: SQLite database with election, candidate, and voter data
+- **voters_pubkeys.json**: Legacy voter authorization file (database takes precedence)
+- **app.log**: Application logs with configurable verbosity
 
 ## Nostr: Communication protocol used for:
 - Requesting blind signatures (via NIP-59 Gift Wrap).
@@ -79,9 +177,50 @@ Shared workspace dependencies include:
 
 ---
 
-## Configuration and Usage
+## Configuration
 
-Go to the directory of voter and ec for specific instructions.
+### Environment Variables
+
+#### Required
+- `NOSTR_PRIVATE_KEY`: The EC's Nostr private key (hex format)
+
+#### Optional
+- `EC_PRIVATE_KEY`: RSA private key content (PEM format)
+- `EC_PUBLIC_KEY`: RSA public key content (PEM format)
+- `GRPC_BIND_IP`: gRPC server bind address (default: 127.0.0.1)
+
+#### RSA Key Loading Priority
+1. Environment variables (`EC_PRIVATE_KEY`, `EC_PUBLIC_KEY`)
+2. Files in current directory (`ec_private.pem`, `ec_public.pem`)
+
+### Configuration Files
+
+#### Voter Configuration (~/.voter/settings.toml)
+```toml
+# Voter's Nostr private key
+nostr_private_key = "your_voter_private_key"
+
+# EC's public key for verification
+ec_public_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END PUBLIC KEY-----"
+
+# Nostr relays for communication
+relays = ["wss://relay.mostro.network"]
+```
+
+### Database Schema
+
+The EC uses SQLite with the following tables:
+- **elections**: Election metadata and status
+- **candidates**: Candidate information per election
+- **voters**: Authorized voters per election
+- **votes**: Vote tracking and tallying
+
+### Security Considerations
+
+- **Network Access**: gRPC binds to localhost by default for security
+- **Key Management**: Store RSA keys securely, never commit to version control
+- **Voter Privacy**: Blind signatures ensure EC cannot correlate votes to voters
+- **Double Voting Prevention**: Nonce tracking prevents multiple votes per voter
 
 ---
 
@@ -194,27 +333,111 @@ This project is licensed under MIT. See [LICENSE](LICENSE) for details.
 
 ---
 
-## Todo list
-- [x] EC publish list of candidates as a Nostr event
-- [x] EC: Add manually voters pubkeys
+## Development Commands
+
+### Build and Test
+```bash
+# Build both binaries in release mode
+cargo build --release
+
+# Run tests
+cargo test
+
+# Build for development
+cargo build
+
+# Run specific binary
+cargo run --bin ec     # Electoral Commission
+cargo run --bin voter  # Voter client
+
+# Run gRPC client example
+cargo run --example grpc_client --bin ec
+
+# Code quality checks
+cargo clippy
+cargo fmt
+```
+
+### Docker Deployment
+
+```bash
+# Build Docker image
+docker build -t criptocracia .
+
+# Run with environment variables
+docker run -e NOSTR_PRIVATE_KEY="your_key" -p 50001:50001 criptocracia
+```
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **"readonly database" error**: Multiple EC processes running
+   ```bash
+   pkill -f "target/release/ec"
+   ```
+
+2. **gRPC connection refused**: Check if EC is running and port is accessible
+   ```bash
+   netstat -tlnp | grep 50001
+   ```
+
+3. **Voter authorization failed**: Ensure voter is registered for the specific election
+   ```bash
+   # Use gRPC API to add voter
+   cargo run --example grpc_client --bin ec
+   ```
+
+4. **RSA key loading failed**: Verify key files exist or environment variables are set
+   ```bash
+   ls -la ec_*.pem
+   echo $EC_PRIVATE_KEY | head -c 50
+   ```
+
+## Architecture Details
+
+### Component Interaction
+```
+┌─────────────┐    gRPC     ┌─────────────────┐    Nostr    ┌─────────────┐
+│   Admin     │◄──────────►│       EC        │◄──────────►│   Voters    │
+│   Client    │   Port 50001│   (Election     │  Gift Wrap  │  (Client)   │
+│             │             │  Commission)    │   Events    │             │
+└─────────────┘             └─────────────────┘             └─────────────┘
+                                     │
+                                     ▼
+                            ┌─────────────────┐
+                            │    Database     │
+                            │   (elections.db)│
+                            │   + Nostr Pub   │
+                            └─────────────────┘
+```
+
+### Cryptographic Flow
+1. **Voter Registration**: Admin adds voter pubkey to election via gRPC
+2. **Token Request**: Voter blinds nonce hash, sends via NIP-59 Gift Wrap
+3. **Token Issuance**: EC verifies voter authorization, issues blind signature
+4. **Vote Casting**: Voter unblinds token, sends vote with anonymous keypair
+5. **Vote Verification**: EC verifies token signature, prevents double voting
+6. **Result Publishing**: Real-time vote tallies published to Nostr
+
+## Feature Status
+
+### Completed (v0.1)
 - [x] Multi-election support with HashMap architecture
 - [x] gRPC admin API for election and voter management
 - [x] Database state restoration on startup
-- [x] Automatic election status transitions
+- [x] Automatic election status transitions (Open → InProgress → Finished)
 - [x] Per-election voter authorization
 - [x] Automatic Nostr publishing for gRPC-created elections
-- [ ] EC create a list of registration tokens to be send to voters (v0.2)
-- [ ] Voter creates key pair and sign the token (v0.2)
-- [ ] Voter send the registration token to EC in a gift wrap (v0.2)
-- [ ] EC receives the registration token and save the voter's pubkey (v0.2)
-- [x] Voter generates a nonce, hash it and send it to EC
-- [x] voter: Add CLI to handle arguments
-- [x] EC: async waiting for events and handle logs
-- [x] Voter: List elections on voter UI
-- [x] Voter: User select election and get list of candidates
-- [x] EC blind sign the voting token and send it back to the voter
-- [x] Voter cast vote
-- [x] EC receive vote
-- [x] EC Count votes and publish to Nostr
-- [x] EC should change the status election depending `start_time` and `end_time`
-- [x] voter: Show results in real time
+- [x] Cancel election functionality
+- [x] Blind signature voting protocol
+- [x] Real-time vote tallying and Nostr publishing
+- [x] TUI voter client with election selection
+- [x] Docker deployment support
+
+### Planned (v0.2)
+- [ ] Registration token system for automated voter enrollment
+- [ ] Voter self-registration with cryptographic proof
+- [ ] Enhanced security auditing and logging
+- [ ] Multi-EC threshold signatures
+- [ ] Web-based voter interface
