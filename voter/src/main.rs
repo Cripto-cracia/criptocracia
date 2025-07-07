@@ -439,15 +439,22 @@ async fn main() -> Result<(), anyhow::Error> {
                             }
                         }
                         KeyCode::Enter => {
-                            let mut app = app.lock().unwrap();
                             if active_area == 0 {
-                                let pk = match app.ec_rsa_pub_key.as_ref() {
-                                    Some(key) => key,
-                                    None => {
-                                        log::error!("EC RSA public key not available - cannot request token");
-                                        continue;
-                                    }
-                                };
+                                // Extract needed data from app state first
+                                let (pk, election_id) = {
+                                    let app = app.lock().unwrap();
+                                    let pk = match app.ec_rsa_pub_key.as_ref() {
+                                        Some(key) => key.clone(),
+                                        None => {
+                                            log::error!("EC RSA public key not available - cannot request token");
+                                            continue;
+                                        }
+                                    };
+                                    let elections_lock = elections.lock().unwrap();
+                                    let election_id = elections_lock.get(selected_election_idx).map(|e| e.id.clone());
+                                    (pk, election_id)
+                                }; // Mutex guard is dropped here
+
                                 let options = Options::default();
                                 let rng = &mut rand::thread_rng();
                                 // 1) Generate nonce and its hash
@@ -460,20 +467,10 @@ async fn main() -> Result<(), anyhow::Error> {
                                     pk.blind(rng, h_n_bytes.clone(), true, &options).expect("Blinding failed");
                                 let blinded_h_n = blinding_result.blind_msg;
                                 let blinded_b64 = general_purpose::STANDARD.encode(blinded_h_n);
-                                app.nonce = Some(nonce);
-                                app.h_n_bytes = Some(h_n_bytes.clone());
-                                app.secret = Some(blinding_result.secret);
-                                app.r = blinding_result.msg_randomizer;
 
-                                let election_id = {
-                                    let elections_lock = elections.lock().unwrap();
-                                    elections_lock.get(selected_election_idx).map(|e| e.id.clone())
-                                };
-                                app.election_id = election_id.clone();
-
-                                if let Some(election_id) = election_id {
+                                if let Some(ref election_id) = election_id {
                                     let message = Message::new(
-                                        election_id,
+                                        election_id.clone(),
                                         1,
                                         blinded_b64,
                                     );
@@ -493,31 +490,53 @@ async fn main() -> Result<(), anyhow::Error> {
                                     // Wait for the Gift Wrap to be unwrapped.
                                 }
 
+                                // Update app state after async operations
+                                {
+                                    let mut app = app.lock().unwrap();
+                                    app.nonce = Some(nonce);
+                                    app.h_n_bytes = Some(h_n_bytes);
+                                    app.secret = Some(blinding_result.secret);
+                                    app.r = blinding_result.msg_randomizer;
+                                    app.election_id = election_id;
+                                }
+
                                 active_area = 1;
                                 selected_candidate_idx = 0;
                             } else if active_area == 1 {
-                                // Log the selected candidate details
-                                let selected_candidate = {
+                                // Extract needed data from app state first
+                                let (selected_candidate, token, r, h_n_bytes) = {
+                                    let app = app.lock().unwrap();
                                     let elections_lock = elections.lock().unwrap();
-                                    elections_lock.get(selected_election_idx).map(|e| {
+                                    let selected_candidate = elections_lock.get(selected_election_idx).map(|e| {
                                         let candidate = e.candidates[selected_candidate_idx].clone();
                                         let election_id = e.id.clone();
                                         (candidate, election_id)
-                                    })
-                                };
-                                app.candidate_id = selected_candidate.as_ref().map(|(c, _)| c.id);
+                                    });
+                                    (
+                                        selected_candidate, 
+                                        app.token.clone(), 
+                                        app.r, 
+                                        app.h_n_bytes.clone()
+                                    )
+                                }; // Mutex guards are dropped here
+
+                                // Update candidate_id in app state
+                                {
+                                    let mut app = app.lock().unwrap();
+                                    app.candidate_id = selected_candidate.as_ref().map(|(c, _)| c.id);
+                                }
 
                                 if let Some((c, election_id)) = selected_candidate {
                                     log::info!("Selected candidate: {:#?}", c);
-                                    let token = match app.token.as_ref() {
+                                    let token = match token.as_ref() {
                                         Some(t) => t,
                                         None => {
                                             log::warn!("Token not generated");
                                             continue;
                                         }
                                     };
-                                    let r = app.r.as_ref().unwrap();
-                                    let h_n_b64 = general_purpose::STANDARD.encode(app.h_n_bytes.as_ref().unwrap());
+                                    let r = r.as_ref().unwrap();
+                                    let h_n_b64 = general_purpose::STANDARD.encode(h_n_bytes.as_ref().unwrap());
                                     let token_b64 = general_purpose::STANDARD.encode(token);
                                     let r_b64 = general_purpose::STANDARD.encode(r);
                                     // h_n:token:r:candidate_id

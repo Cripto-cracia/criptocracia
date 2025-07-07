@@ -27,7 +27,6 @@ app.log
 # Ignore local configuration
 ec_private.pem
 ec_public.pem
-voters_pubkeys.json
 elections.db
 
 # Ignore OS files

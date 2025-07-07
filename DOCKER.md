@@ -29,9 +29,6 @@ docker run -d \
 # Create data directory
 mkdir -p data
 
-# Copy voters file
-cp voters_pubkeys.json data/
-
 # Set environment variables
 export EC_PRIVATE_KEY="$(cat ec_private.pem)"
 export EC_PUBLIC_KEY="$(cat ec_public.pem)"
@@ -44,7 +41,6 @@ docker-compose up -d
 
 The container expects:
 - RSA keys via `EC_PRIVATE_KEY` and `EC_PUBLIC_KEY` environment variables
-- Voters file at `/app/data/voters_pubkeys.json`
 - Data directory mounted at `/app/data`
 
 ## Digital Ocean App Platform
@@ -71,9 +67,6 @@ The container expects:
    - `EC_PRIVATE_KEY`: Your RSA private key PEM content (mark as encrypted)
    - `EC_PUBLIC_KEY`: Your RSA public key PEM content (mark as encrypted)
    - `RUST_LOG`: Set to `info`
-
-4. **Upload voters file:**
-   You'll need to upload `voters_pubkeys.json` to the `/app/data` directory after deployment.
 
 ### Alternative: Use App Spec
 
@@ -111,11 +104,7 @@ doctl apps create --spec .do/app.yaml
    - Verify RSA key format (must include headers/footers)
    - Check logs: `docker logs <container_id>`
 
-2. **Missing voters file:**
-   - Ensure `voters_pubkeys.json` exists in data directory
-   - Check file permissions
-
-3. **Network issues:**
+2. **Network issues:**
    - Verify port 3000 is accessible
    - Check firewall settings
    - Ensure Nostr relay connectivity
