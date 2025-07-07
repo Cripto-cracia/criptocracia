@@ -38,6 +38,9 @@ openssl rsa -in ec_private.pem -pubout -out ec_public.pem
 
 ### Environment Variables
 ```bash
+# Nostr private key (required) - hex format
+export NOSTR_PRIVATE_KEY="e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c"
+
 # RSA key content (optional, falls back to files in current directory)
 export EC_PRIVATE_KEY="$(cat ec_private.pem)"
 export EC_PUBLIC_KEY="$(cat ec_public.pem)"
@@ -50,7 +53,7 @@ export EC_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyzrjKKl...
 -----END PUBLIC KEY-----"
 
-# If environment variables are not set, files are expected in the --dir directory:
+# If RSA environment variables are not set, files are expected in the --dir directory:
 # {dir}/ec_private.pem and {dir}/ec_public.pem
 ```
 

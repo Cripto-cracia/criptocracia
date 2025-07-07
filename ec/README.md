@@ -20,6 +20,15 @@ cd criptocracia/ec
 
 ---
 
+## Install dependencies
+
+To compile on Ubuntu/Pop!\_OS, please install [cargo](https://www.rust-lang.org/tools/install), then run the following commands:
+
+```bash
+sudo apt update
+sudo apt install -y cmake build-essential libsqlite3-dev pkg-config libssl-dev protobuf-compiler ca-certificates
+```
+
 ## Building the Project
 
 From the workspace root:

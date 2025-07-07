@@ -23,12 +23,6 @@ use tokio::{
 };
 use types::{Candidate, Message};
 
-// Demo keys for the electoral commission:
-// Hex public key:   0000001ace57d0da17fc18562f4658ac6d093b2cc8bb7bd44853d0c196e24a9c
-// Hex private key:  e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c
-// Npub public key:  npub1qqqqqxkw2lgd59lurptz73jc43ksjwevezahh4zg20gvr9hzf2wq8nzqyl
-// Nsec private key: nsec1u0enx5rjskqv65wm3aqy34s5jyx53fwq6lc676q3aq7q0lyxtfwqph3yue
-
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -137,7 +131,12 @@ async fn main() -> Result<()> {
     let db = Arc::new(Database::new(app_dir.join("elections.db")).await?);
     log::info!("Database initialized successfully");
 
-    let keys = Keys::parse("e3f33350728580cd51db8f4048d614910d48a5c0d7f1af6811e83c07fc865a5c")?;
+    // Load Nostr keys from environment variable
+    let keys = if let Ok(nostr_private_key) = std::env::var("NOSTR_PRIVATE_KEY") {
+        Keys::parse(&nostr_private_key)?
+    } else {
+        return Err(anyhow::anyhow!("NOSTR_PRIVATE_KEY environment variable is required"));
+    };
 
     // 1. Load the keys from environment variables or fallback to files
     let (pk, sk) = if let (Ok(private_pem), Ok(public_pem)) = (
