@@ -25,11 +25,17 @@ pub struct Message {
     /// 1: Token request, 2: Vote
     pub kind: u8,
     pub payload: String,
+    /// Election ID for election-specific validation
+    pub election_id: Option<String>,
 }
 
 impl Message {
     pub fn new(id: String, kind: u8, payload: String) -> Self {
-        Self { id, kind, payload }
+        Self { id, kind, payload, election_id: None }
+    }
+
+    pub fn new_with_election(id: String, kind: u8, payload: String, election_id: String) -> Self {
+        Self { id, kind, payload, election_id: Some(election_id) }
     }
 
     pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
@@ -60,5 +66,17 @@ mod tests {
         assert_eq!(parsed.id, "abc");
         assert_eq!(parsed.kind, 2);
         assert_eq!(parsed.payload, "payload");
+        assert_eq!(parsed.election_id, None);
+    }
+
+    #[test]
+    fn test_message_with_election_id() {
+        let msg = Message::new_with_election("abc".into(), 2, "payload".into(), "election123".into());
+        let json = msg.as_json();
+        let parsed = Message::from_json(&json).expect("Should parse correctly");
+        assert_eq!(parsed.id, "abc");
+        assert_eq!(parsed.kind, 2);
+        assert_eq!(parsed.payload, "payload");
+        assert_eq!(parsed.election_id, Some("election123".to_string()));
     }
 }
