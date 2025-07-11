@@ -1,7 +1,7 @@
 use anyhow::Result;
 use chrono::Utc;
-use sqlx::{Pool, Sqlite, SqlitePool, Row};
-use std::{fs, path::Path};
+use sqlx::{Pool, Sqlite, SqlitePool, Row, ConnectOptions};
+use std::{fs, path::Path, str::FromStr};
 
 use crate::election::{Election, Status};
 use crate::types::Candidate;
@@ -59,7 +59,17 @@ impl Database {
         }
 
         let db_url = format!("sqlite://{}", db_path.display());
-        let pool = SqlitePool::connect(&db_url).await?;
+        
+        // Configure connection options for better performance
+        let connection_options = sqlx::sqlite::SqliteConnectOptions::from_str(&db_url)?
+            .create_if_missing(true)
+            .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+            .synchronous(sqlx::sqlite::SqliteSynchronous::Normal)
+            .busy_timeout(std::time::Duration::from_secs(30))
+            .log_statements(log::LevelFilter::Debug)
+            .log_slow_statements(log::LevelFilter::Warn, std::time::Duration::from_millis(100));
+        
+        let pool = SqlitePool::connect_with(connection_options).await?;
         
         let db = Database { pool };
         db.create_tables().await?;
@@ -137,7 +147,36 @@ impl Database {
         .execute(&self.pool)
         .await?;
 
+        // Create indexes for better performance
+        self.create_indexes().await?;
+
         log::info!("Database tables created successfully");
+        Ok(())
+    }
+
+    /// Create database indexes for better performance
+    async fn create_indexes(&self) -> Result<()> {
+        // Index for election_voters table - frequently queried by election_id
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_election_voters_election_id ON election_voters(election_id)")
+            .execute(&self.pool)
+            .await?;
+
+        // Index for candidates table - frequently queried by election_id  
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_candidates_election_id ON candidates(election_id)")
+            .execute(&self.pool)
+            .await?;
+
+        // Index for used_tokens table - frequently queried by election_id
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_used_tokens_election_id ON used_tokens(election_id)")
+            .execute(&self.pool)
+            .await?;
+
+        // Index for election_voters voter_pubkey lookups
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_election_voters_pubkey ON election_voters(voter_pubkey)")
+            .execute(&self.pool)
+            .await?;
+
+        log::info!("Database indexes created successfully");
         Ok(())
     }
 
@@ -360,7 +399,15 @@ impl Database {
 
     /// Save authorized voters for an election
     pub async fn save_election_voters(&self, election_id: &str, voters: &[String]) -> Result<()> {
+        if voters.is_empty() {
+            return Ok(());
+        }
+
+        let start_time = std::time::Instant::now();
         let now = chrono::Utc::now().timestamp();
+        
+        // Use a transaction for batch operations
+        let mut tx = self.pool.begin().await?;
         
         for voter in voters {
             sqlx::query(
@@ -373,11 +420,14 @@ impl Database {
             .bind(election_id)
             .bind(voter)
             .bind(now)
-            .execute(&self.pool)
+            .execute(&mut *tx)
             .await?;
         }
 
-        log::debug!("Saved {} authorized voters for election {}", voters.len(), election_id);
+        tx.commit().await?;
+
+        let duration = start_time.elapsed();
+        log::debug!("Saved {} authorized voters for election {} in {:?}", voters.len(), election_id, duration);
         Ok(())
     }
 
